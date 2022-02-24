@@ -1,0 +1,9 @@
+rasterio
+netcdf4
+xarray
+pyproj
+numpy 
+geopandas
+rioxarray
+shapely.geometry
+
