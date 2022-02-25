@@ -6,4 +6,5 @@ numpy
 geopandas
 rioxarray
 shapely.geometry
-
+geopy.distance
+pyproj
