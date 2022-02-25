@@ -10,6 +10,14 @@ import geopy.distance
 import rioxarray
 from pyproj import Transformer
 
+def getRange(data, index):
+    if(index == 0):
+        return data[0:2]
+    if(index == 1):
+        return data[0:3]
+    if(index == len(data)-1):
+        return data[index-1:]
+
 def checkCoordinates(lat,lon,next_lat,next_lon, boreal_coordinates):
     #if three of four coordinates are in, majority of cell counts
     count = 0
@@ -154,7 +162,11 @@ if __name__ == "__main__":
                 lon = cesm_temp_data['lon'].data[lon_index]
                 next_lat = cesm_temp_data['lat'].data[lat_index+1]
                 next_lon = cesm_temp_data['lon'].data[lon_index+1]
-                lon_scaled = lon - 360 if lon > 180 else lon # this is not the right formula, does not cover edge cases eg. 178 goes to -180
+                lon_scaled = lon - 360 if lon >= 180 else lon # this is not the right formula, does not cover edge cases eg. 178 goes to -180
+                next_lon_scaled = next_lon - 360 if next_lon >= 180 else next_lon # this is not the right formula, does not cover edge cases eg. 178 goes to -180
+
+                if(next_lon_scaled == -180):
+                    next_lon_scaled = 180
                 point = Point(lon_scaled,lat)
                 if(not checkCoordinates(lat,lon,next_lat,next_lon,boreal_coordinates)):
                     continue
@@ -167,8 +179,8 @@ if __name__ == "__main__":
                 observed_data = [elevation,precipitation,t2m,tree_cover]
                 logging.info(f'lat = {lat} lon = {lon} year={year}')
                 logging.info(f'elevation = {elevation}, precipitation = {precipitation}, t2m = {t2m}, tree_cover = {tree_cover}')
-                lat_range = cesm_temp_data['lat'].data[lat_index-2:lat_index+1]
-                lon_range = cesm_temp_data['lon'].data[lon_index-2:lon_index+1]
+                lat_range = getRange(cesm_temp_data['lat'].data, lat_index)
+                lon_range = getRange(cesm_temp_data['lon'].data, lon_index)
                 squared_kilometers_long = geopy.distance.distance((lat,lon), (lat,next_lon)).km
                 squared_kilometers = geopy.distance.distance((lat,lon), (next_lat,lon)).km
                 area = squared_kilometers * squared_kilometers_long
@@ -186,8 +198,10 @@ if __name__ == "__main__":
                 number_of_grid_cells = number_of_grid_cells + 1
                 logging.info(f'total_gpp = {total_gpp},total agb = {total_agb}')
         csv_writer.writerow([year,total_gpp,total_agb])
+        logging.info('FINAL YEAR ', year, total_gpp, total_agb)
         observed_tree_cover_data.close()
     csv_writer.writerow([number_of_grid_cells, number_of_grid_cells_mapped])
-    print('runtime: %f seconds' % (time.time() - start))
+    logging.info(number_of_grid_cells, number_of_grid_cells_mapped)
+    logging.info('runtime: %f seconds' % (time.time() - start))
     output.close()
 
