@@ -70,13 +70,13 @@ def getObservedTreeCover(lat,next_lat,lon,next_lon,obs_tree,transformer):
     lat,lon = transformer.transform(lat,lon)
     next_lat,next_lon = transformer.transform(next_lat,next_lon)
     sl = obs_tree.isel(
-        x=np.logical_and(obs_tree.x >= lat, obs_tree.x <= next_lat),
-        y=np.logical_and(obs_tree.y >= lon, obs_tree.y <= next_lon),
+        x=np.logical_and(obs_tree.x >= lat, obs_tree.x < next_lat),
+        y=np.logical_and(obs_tree.y >= lon, obs_tree.y < next_lon),
         band=0
         )
     if (sl.size == 0):
         return 0
-    tree_coverage = sl.where(np.isin(sl.data,[230,220,210,81]))
+    tree_coverage = sl.where(np.isin(sl.data,[230,220,210,81])) #should forested wetland, 81, be included? 
     tree_coverage = tree_coverage.groupby('x')
     tree_coverage = tree_coverage.count('y')
     tree_coverage = tree_coverage.sum()
@@ -107,6 +107,8 @@ def compareValues(simulated_values, observed_values):
     return True
 
 if __name__ == "__main__":
+    # import os
+# os.system('export ECCODES_DIR=/home/graham/eccodes')
     start = time.time()
     logging.basicConfig(filename='logs/lookup_table_'+ str(datetime.now()) + '.log', level=logging.INFO)
     output = open('output.csv', 'w')
@@ -193,7 +195,7 @@ if __name__ == "__main__":
                     if(not np.isnan(gpp)):
                         total_gpp = total_gpp + ( gpp * 1000 * area) #kgC/100km/year
                     if(not np.isnan(cVeg)):
-                        total_agb = total_agb + (cVeg * 1000 * area / (0.5*1.222)) #kg/100km
+                        total_agb = total_agb + (cVeg * 1000 * area / (0.5*1.222)) #cveg is kg/m-2, *1000000 is kg/km-2
                     number_of_grid_cells_mapped = number_of_grid_cells_mapped + 1
                 number_of_grid_cells = number_of_grid_cells + 1
                 logging.info(f'total_gpp = {total_gpp},total agb = {total_agb}')
