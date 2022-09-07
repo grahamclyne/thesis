@@ -1,0 +1,16 @@
+data prep
+
+COMPLETE SEPTEMBER 20, start SEPT 6
+
+process and validate NFIS 
+process and validate MODIS
+process and validate ERA
+prep for NN 
+
+
+
+
+
+OTHER:
+
+convert epsg:3978 to wgs84 instead of current "bounds" hack

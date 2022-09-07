@@ -1,15 +1,10 @@
-from locale import YESEXPR
 import xarray as xr
-import csv
 import geopandas 
 from shapely.geometry import mapping 
 import numpy as np
 import torch as T
 import torch.nn as nn
-import torch.nn.functional as F
-from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
-from torchvision import transforms
 
 class CMIPDataset(T.utils.data.Dataset):
     def __init__(self, netcdf_paths, shp_file_path, root_dir, transform=None):
@@ -32,12 +27,6 @@ class Net(T.nn.Module):
     self.hid2 = T.nn.Linear(10, 10)
     self.drop1 = T.nn.Dropout(0.50) #example of dropout layer
     self.oupt = T.nn.Linear(10, 1)
-    T.nn.init.xavier_uniform_(self.hid1.weight)
-    T.nn.init.zeros_(self.hid1.bias)
-    T.nn.init.xavier_uniform_(self.hid2.weight)
-    T.nn.init.zeros_(self.hid2.bias)
-    T.nn.init.xavier_uniform_(self.oupt.weight)
-    T.nn.init.zeros_(self.oupt.bias)
 
   def forward(self, x):
     z = T.relu(self.hid1(x))
@@ -72,6 +61,7 @@ def netcdf_to_numpy(netcdf_file,variable,shape_file,needCoords):
     clipped = netcdf_file.rio.clip(shape_file.geometry.apply(mapping), shape_file.crs,drop=True)
     df = clipped.to_dataframe().reset_index()
     df = df[df[variable].notna()]
+    #dont need to have coords for every netcdf file, just need this once for data. should probably move this to separate function. 
     if(needCoords):
         array = df[[variable,'lat','lon']].values
     else:
@@ -85,11 +75,7 @@ def netcdf_to_numpy(netcdf_file,variable,shape_file,needCoords):
 
 
 if __name__ == "__main__":
-    # shape_file = geopandas.read_file('/Users/gclyne/boreal_reduced.shp', crs="epsg:4326")
-    # cLeaf = netcdf_to_numpy(xr.open_dataset('data/cLeaf_Lmon_CESM2_land-hist_r1i1p1f1_gn_185001-201512.nc'),'cLeaf',shape_file,True)
-    # gpp = netcdf_to_numpy(xr.open_dataset('data/gpp_Lmon_CESM2_land-hist_r1i1p1f1_gn_185001-201512.nc'),'gpp',shape_file,False)
-    # cVeg = netcdf_to_numpy(xr.open_dataset('data/cVeg_Lmon_CESM2_land-hist_r1i1p1f1_gn_185001-201512.nc'),'cVeg',shape_file,False)
-    # rGrowth = netcdf_to_numpy(xr.open_dataset('data/rGrowth_Lmon_CESM2_land-hist_r1i1p1f1_gn_185001-201512.nc'),'rGrowth',shape_file,False)
+
     ds = CMIPDataset([
         'cLeaf_Lmon_CESM2_land-hist_r1i1p1f1_gn_185001-201512.nc',
         'gpp_Lmon_CESM2_land-hist_r1i1p1f1_gn_185001-201512.nc',
@@ -97,20 +83,18 @@ if __name__ == "__main__":
         'cVeg_Lmon_CESM2_land-hist_r1i1p1f1_gn_185001-201512.nc'],
         '/Users/gclyne/thesis/data/NABoreal.shp','/Users/gclyne/thesis/data/'
         )
-
     ds.data = (ds.data - ds.data.mean()) / ds.data.std() #where should this be done? 
+
+    ds = T.utils.data.Subset(ds, list(range(0,100)))
     train_set_size = int(len(ds) * 0.8)
     valid_set_size = len(ds) - train_set_size
     train,test = T.utils.data.random_split(ds, [train_set_size, valid_set_size], generator=T.Generator().manual_seed(42))
-    # X = np.concatenate((cLeaf,gpp,rGrowth),1)
-    # y = cVeg
-    # X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=42)
 
     model = Net()
     loss_function = nn.MSELoss()
-    learning_rate = 0.01
-    train_ldr = T.utils.data.DataLoader(train,batch_size=10000,shuffle=True)
-    test_ldr = T.utils.data.DataLoader(test,batch_size=10000,shuffle=True)
+    learning_rate = 0.05
+    train_ldr = T.utils.data.DataLoader(train,batch_size=1,shuffle=True)
+    test_ldr = T.utils.data.DataLoader(test,batch_size=1,shuffle=True)
     optimizer = T.optim.SGD(model.parameters(), lr=learning_rate)
     losses = []
     # X_train = T.from_numpy(X_train).float()
@@ -118,16 +102,18 @@ if __name__ == "__main__":
     # X_test = T.from_numpy(X_test).float()
     # y_test = T.utils.data.Dataloader(T.from_numpy(y_test).float()
     min_valid_loss = np.inf
-    for epoch in range(5):
+    for epoch in range(2):
         train_loss = 0
         model.train()
         for X,y in train_ldr:
-            pred_y = model(X.float())
-            loss = loss_function(pred_y, y.float())
+            pred_y = model(X.float())[0]
+            print(X,pred_y,y)
+            loss = loss_function(pred_y, y.float().unsqueeze(1))
             optimizer.zero_grad() #clears old gradients from previous steps 
             loss.backward() #compute gradient
             optimizer.step() #take step based on gradient
             train_loss += loss.item()
+            print(loss.item())
         losses.append(train_loss)
 
 
