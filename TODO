@@ -14,3 +14,10 @@ prep for NN
 OTHER:
 
 convert epsg:3978 to wgs84 instead of current "bounds" hack
+fix year indexing of ERA data when selecting for reduction
+apply cloud mask to elevation model ? ----> when sum whole image collection, mask gives {'MSK': {'0': 480492399.4823542,
+  '28': 98935.34509803921,
+  '36': 1559988.196078431,
+  '40': 13529832.705882354,
+  '8': 0.16470588235294117}} (where bit of 1 is invalid, ie no invalid pixels)
+  normalize each individual netcdf

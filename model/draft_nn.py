@@ -52,7 +52,7 @@ def combine_netcdfs(file_paths,shp_file_path,root):
             coords = False
     return out 
 
-def netcdf_to_numpy(netcdf_file,variable,shape_file,needCoords):
+def netcdf_to_numpy(netcdf_file,variable,shape_file):
     #need to check why mod makes this break ------ long180 = (long360 + 180) % 360 - 180
     netcdf_file['lon'] = netcdf_file['lon'] - 360 if np.any(netcdf_file['lon'] > 180) else netcdf_file['lon']
     netcdf_file = netcdf_file[variable]
@@ -61,12 +61,7 @@ def netcdf_to_numpy(netcdf_file,variable,shape_file,needCoords):
     clipped = netcdf_file.rio.clip(shape_file.geometry.apply(mapping), shape_file.crs,drop=True)
     df = clipped.to_dataframe().reset_index()
     df = df[df[variable].notna()]
-    #dont need to have coords for every netcdf file, just need this once for data. should probably move this to separate function. 
-    if(needCoords):
-        array = df[[variable,'lat','lon']].values
-    else:
-        array = df[[variable]].values
-    return array
+    return df[[variable]].values
 
 
 
@@ -79,7 +74,7 @@ if __name__ == "__main__":
     ds = CMIPDataset([
         'cLeaf_Lmon_CESM2_land-hist_r1i1p1f1_gn_185001-201512.nc',
         'gpp_Lmon_CESM2_land-hist_r1i1p1f1_gn_185001-201512.nc',
-        'rGrowth_Lmon_CESM2_land-hist_r1i1p1f1_gn_185001-201512.nc',
+        'treeFrac_Lmon_CESM2_land-hist_r1i1p1f1_gn_194901-201512.nc',
         'cVeg_Lmon_CESM2_land-hist_r1i1p1f1_gn_185001-201512.nc'],
         '/Users/gclyne/thesis/data/NABoreal.shp','/Users/gclyne/thesis/data/'
         )
