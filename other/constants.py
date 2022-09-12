@@ -1,1 +1,0 @@
-DATA_FOLDER = '/Users/gclyne/thesis/data/'

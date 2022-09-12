@@ -4,16 +4,14 @@ import csv
 from datetime import date
 import rioxarray
 import xarray as xr
-from constants import DATA_FOLDER
+import config
 import ee 
 import time
 import multiprocessing
 
 def getRow(nfis_tif,year,lat,lon,next_lat,next_lon) -> None:
     print(lat,lon,multiprocessing.current_process())
-    # nfis_tif = rioxarray.open_rasterio(f'/Users/gclyne/Downloads/CA_forest_VLCE2_{year}/CA_forest_VLCE2_{year}.tif',decode_coords='all')
-    era_temp = xr.open_dataset('/Users/gclyne/thesis/data/_2m_temperature.nc')
-
+    era_temp = xr.open_dataset(f'{config.ERA_PATH}_2m_temperature.nc')
     clipped_nfis = clipNFIS(nfis_tif,lat,lon,next_lat,next_lon)
     observed_tree_cover = countNFIS(clipped_nfis)
     era_yearly_avg = eraYearlyAverage(era_temp,lat,lon,next_lat,next_lon,year)
@@ -21,9 +19,8 @@ def getRow(nfis_tif,year,lat,lon,next_lat,next_lon) -> None:
     elev = elevation(lat,lon,next_lat,next_lon,0,{})
     nfis_tif.close()
     era_temp.close()
-    #append year to row for timeseries potential,can drop this when doing testing
+    #append year to row for timeseries potential,can drop this when doing testing - append lat lon for unique key (comibned w year)
     row = [observed_tree_cover,era_yearly_avg,lai,elev,year,lat,lon]
-    print(row)
     return row
 
 
@@ -35,17 +32,17 @@ if __name__ == '__main__':
     ordered_latitudes = []
     ordered_longitudes = []
 
-    with open('/Users/gclyne/thesis/boreal_latitudes_longitudes.csv', newline='') as csvfile:
+    with open(f'{config.DATA_PATH}boreal_latitudes_longitudes.csv', newline='') as csvfile:
         spamreader = csv.reader(csvfile, delimiter=',')
         for row in spamreader:
             boreal_coordinates.append((float(row[0]),float(row[1])))
 
-    with open('grid_latitudes.csv',newline='') as csvfile:
+    with open(f'{config.DATA_PATH}grid_latitudes.csv',newline='') as csvfile:
         reader = csv.reader(csvfile,delimiter=',')
         for row in reader:
             ordered_latitudes.append(float(row[0]))
 
-    with open('grid_longitudes.csv',newline='') as csvfile:
+    with open(f'{config.DATA_PATH}grid_longitudes.csv',newline='') as csvfile:
         reader = csv.reader(csvfile,delimiter=',')
         for row in reader:
             ordered_longitudes.append(float(row[0]))
@@ -53,7 +50,7 @@ if __name__ == '__main__':
     year = date(1984,1,1).year
     range(year, year + 31, 1)
 
-    observable_rows = open(f'{DATA_FOLDER}observable_data.csv','w')
+    observable_rows = open(f'{config.DATA_PATH}observable_data.csv','w')
     writer = csv.writer(observable_rows)
     writer.writerow(['observed_tree_cover','era_temp2m','lai','elev','year','lat','lon'])
     lock = multiprocessing.Lock()
@@ -66,29 +63,13 @@ if __name__ == '__main__':
 
     for year in range(year,year+31,1):
         print(year)
-        #open NFIS file for year
-        nfis_tif = rioxarray.open_rasterio(f'/Users/gclyne/Downloads/CA_forest_VLCE2_{year}/CA_forest_VLCE2_{year}.tif',decode_coords='all',lock=False)
-        #open ERA file
-        # era_temp = xr.open_dataset('/Users/gclyne/thesis/data/_2m_temperature.nc')
+        nfis_tif = rioxarray.open_rasterio(f'{config.NFIS_PATH}CA_forest_VLCE2_{year}/CA_forest_VLCE2_{year}.tif',decode_coords='all',lock=False)
         x = iter(boreal_coordinates)
         p = multiprocessing.Pool(4)
         with p:
             for i in range(int(len(boreal_coordinates))):
                 lat,lon,next_lat,next_lon = getCoordinates(next(x))
                 p.apply_async(getRow,[nfis_tif,year,lat,lon,next_lat,next_lon],callback = writer.writerow)
-                # lat,lon,next_lat,next_lon = getCoordinates(next(x))
-                # x2 = p.apply_async(getRow,[nfis_tif,year,lat,lon,next_lat,next_lon])
-                # lat,lon,next_lat,next_lon = getCoordinates(next(x))
-                # x3 = p.apply_async(getRow,[nfis_tif,year,lat,lon,next_lat,next_lon])
-                # lat,lon,next_lat,next_lon = getCoordinates(next(x))
-                # x4 = p.apply_async(getRow,[nfis_tif,year,lat,lon,next_lat,next_lon])            
-                # lat,lon,next_lat,next_lon = getCoordinates(next(x))
-                # x5 = p.apply_async(getRow,[nfis_tif,year,lat,lon,next_lat,next_lon])
-                # writer.writerow(x1.get())
-                # writer.writerow(x2.get())
-                # writer.writerow(x3.get())
-                # writer.writerow(x4.get())
-                # writer.writerow(x5.get())
             p.close()
             p.join()
         nfis_tif.close()

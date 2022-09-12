@@ -39,7 +39,11 @@ def getCoordinates(latlon):
 
 
 def getMODISLAI(lat,lon,next_lat,next_lon,year,procnum,process_dict):
-    ee.Initialize()
+    try:     
+        ee.Initialize()
+    except:
+        ee.Authenticate()
+        ee.Initialize()
     b_box = ee.Geometry.BBox(lon,lat,next_lon,next_lat)
     b_box_bounds = b_box.bounds()
     start_date = ee.Date(str(year))
@@ -75,13 +79,17 @@ def eraYearlyAverage(era,lat,lon,next_lat,next_lon,year):
     era = era.groupby('time.year').mean()
     era = era.isel(
     year=year - 1984, #this only works if first year of data is 1984
-    latitude=np.logical_and(era.latitude >= lat,era.latitude <= lat+0.9), 
-    longitude=np.logical_and(era.longitude >= lon, era.longitude <= lon+1.25)
+    latitude=np.logical_and(era.latitude >= lat,era.latitude <= next_lat), 
+    longitude=np.logical_and(era.longitude >= lon, era.longitude <= next_lon)
     )
     return (era.sum() / (len(era.latitude) * len(era.longitude)))[list(era.keys())[0]].values.item()
 
 def elevation(lat,lon,next_lat,next_lon,procnum,process_dict):
-    ee.Initialize()
+    try:     
+        ee.Initialize()
+    except:
+        ee.Authenticate()
+        ee.Initialize()
     b_box = ee.Geometry.BBox(lon,lat,next_lon,next_lat)
     b_box_bounds = b_box.bounds()
     modis = ee.ImageCollection("JAXA/ALOS/AW3D30/V3_2").select('DSM').mean()

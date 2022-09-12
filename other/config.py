@@ -1,0 +1,5 @@
+NFIS_PATH = '/Users/gclyne/thesis/data/NFIS/'
+ERA_PATH = '/Users/gclyne/thesis/data/ERA/'
+SHAPEFILE_PATH = '/Users/gclyne/thesis/data/shapefiles/'
+CESM_PATH = '/Users/gclyne/thesis/data/CESM/'
+DATA_PATH = '/Users/gclyne/thesis/data/'

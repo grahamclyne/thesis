@@ -72,8 +72,7 @@ def netcdf_to_numpy(netcdf_file,variable,shape_file):
 if __name__ == "__main__":
 
     ds = CMIPDataset([
-        'cLeaf_Lmon_CESM2_land-hist_r1i1p1f1_gn_185001-201512.nc',
-        'gpp_Lmon_CESM2_land-hist_r1i1p1f1_gn_185001-201512.nc',
+        'lai_Lmon_CESM2_land-hist_r1i1p1f1_gn_185001-201512',
         'treeFrac_Lmon_CESM2_land-hist_r1i1p1f1_gn_194901-201512.nc',
         'cVeg_Lmon_CESM2_land-hist_r1i1p1f1_gn_185001-201512.nc'],
         '/Users/gclyne/thesis/data/NABoreal.shp','/Users/gclyne/thesis/data/'
