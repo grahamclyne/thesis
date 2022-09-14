@@ -65,7 +65,7 @@ if __name__ == '__main__':
         print(year)
         nfis_tif = rioxarray.open_rasterio(f'{config.NFIS_PATH}CA_forest_VLCE2_{year}/CA_forest_VLCE2_{year}.tif',decode_coords='all',lock=False)
         x = iter(boreal_coordinates)
-        p = multiprocessing.Pool(4)
+        p = multiprocessing.Pool(config.NUM_CORES)
         with p:
             for i in range(int(len(boreal_coordinates))):
                 lat,lon,next_lat,next_lon = getCoordinates(next(x))
