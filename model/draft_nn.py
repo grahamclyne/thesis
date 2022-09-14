@@ -9,9 +9,8 @@ import other.config as config
 from other.utils import netcdfToNumpy
 
 class CMIPDataset(T.utils.data.Dataset):
-    def __init__(self, netcdf_paths, shp_file_path, root_dir, transform=None):
-        self.data = combine_netcdfs(netcdf_paths,shp_file_path=shp_file_path,root=root_dir)
-        self.root_dir = root_dir
+    def __init__(self, data, transform=None):
+        self.data = data
 
     def __len__(self):
         return len(self.data)
@@ -38,20 +37,6 @@ class Net(T.nn.Module):
     return z
 
 
-def combine_netcdfs(file_paths:list,shp_file_path:str,root:str) -> np.ndarray :
-    shp_file = geopandas.read_file(shp_file_path, crs="epsg:4326")
-    canada_shape_file = geopandas.read_file(f'{config.SHAPEFILE_PATH}lpr_000b21a_e/lpr_000b21a_e.shp')
-
-    out = np.array([])
-    for file in file_paths:
-        ds = xr.open_dataset(root + file)
-        var = file.split('_')[0]
-        arr = netcdfToNumpy(ds,var,shp_file,canada_shape_file)
-        if(len(out) == 0):
-            out = arr
-        else:
-            out = np.concatenate((out,arr),1)
-    return out 
 
 
 
@@ -61,18 +46,8 @@ def combine_netcdfs(file_paths:list,shp_file_path:str,root:str) -> np.ndarray :
 
 
 if __name__ == "__main__":
-
-    ds = CMIPDataset([
-        'lai_Lmon_CESM2_land-hist_r1i1p1f1_gn_185001-201512',
-        'pr_Amon_CESM2_land-hist_r1i1p1f1_gn_185001-201512',
-        'tas_Amon_CESM2_land-hist_r1i1p1f1_gn_185001-201512',
-        'treeFrac_Lmon_CESM2_land-hist_r1i1p1f1_gn_194901-201512.nc',
-        'cVeg_Lmon_CESM2_land-hist_r1i1p1f1_gn_185001-201512.nc',
-        'cSoil_Emon_CESM2_land-hist_r1i1p1f1_gn_185001-201512.nc',
-        'cLitter_Lmon_CESM2_land-hist_r1i1p1f1_gn_185001-201512.nc',
-        'cCwd_Lmon_CESM2_land-hist_r1i1p1f1_gn_185001-201512.nc'],
-        f'{config.SHAPEFILE_PATH}NABoreal.shp',f'{config.CESM_PATH}'
-        )
+    data = np.genfromtxt(f'{config.CESM_PATH}/cesm_data.csv',delimiter=',')
+    ds = CMIPDataset(data)
     ds.data = (ds.data - ds.data.mean()) / ds.data.std() #where should this be done? 
 
     ds = T.utils.data.Subset(ds, list(range(0,100)))

@@ -30,12 +30,15 @@ def clipNFIS(nfis_tif,lat,lon,next_lat,next_lon) -> xr.DataArray:
     return sl
 
 
-def getCoordinates(latlon):
+def getCoordinates(latlon,latitudes,longitudes):
     lat = latlon[0]
     lon = latlon[1]
-    next_lat = lat + 1
-    next_lon = lon + 1
+    next_lat = latitudes[latitudes.index(lat) + 1]
+    next_lon = longitudes[longitudes.index(lon) + 1]
     return lat,lon,next_lat,next_lon
+
+
+
 
 
 def getMODISLAI(lat,lon,next_lat,next_lon,year):
@@ -57,21 +60,8 @@ def getMODISLAI(lat,lon,next_lat,next_lon,year):
     else:
         return output['Lai_500m']
 
-def netcdfToNumpy(netcdf_file,variable,shape_file,canada_shape_file):
-    netcdf_file['lon'] = netcdf_file['lon'] - 360 if np.any(netcdf_file['lon'] > 180) else netcdf_file['lon']
-    netcdf_file = netcdf_file.groupby('time.year').mean()
-    netcdf_file = netcdf_file.sel(year=netcdf_file.year>=1949)
-    netcdf_file = netcdf_file[variable]
-    netcdf_file.rio.set_spatial_dims(x_dim="lon", y_dim="lat", inplace=True)
-    netcdf_file.rio.write_crs("epsg:4326", inplace=True)
-    clipped = netcdf_file.rio.clip(shape_file.geometry.apply(mapping), shape_file.crs,drop=True)
-    clipped = clipped.rio.clip(canada_shape_file.geometry.apply(mapping), canada_shape_file.crs,drop=True)
 
-    df = clipped.to_dataframe().reset_index()
-    df = df[df[variable].notna()]
-    return df[[variable]].values
 
-    
 def countNFIS(nfis_tif):
     tree_coverage = nfis_tif.where(np.isin(nfis_tif.data,[230,220,210,81])) #should forested wetland, 81, be included? 
     tree_coverage = tree_coverage.groupby('x')
