@@ -5,6 +5,8 @@ import numpy as np
 import torch as T
 import torch.nn as nn
 import matplotlib.pyplot as plt
+import other.config as config
+from other.utils import netcdfToNumpy
 
 class CMIPDataset(T.utils.data.Dataset):
     def __init__(self, netcdf_paths, shp_file_path, root_dir, transform=None):
@@ -25,43 +27,32 @@ class Net(T.nn.Module):
     super(Net, self).__init__()
     self.hid1 = T.nn.Linear(5,10) 
     self.hid2 = T.nn.Linear(10, 10)
-    self.drop1 = T.nn.Dropout(0.50) #example of dropout layer
+    # self.drop1 = T.nn.Dropout(0.50) #example of dropout layer
     self.oupt = T.nn.Linear(10, 1)
 
   def forward(self, x):
     z = T.relu(self.hid1(x))
     z = T.relu(self.hid2(z))
-    z = self.drop1(z)
+    # z = self.drop1(z)
     z = self.oupt(z)  # no activation bc of regression
     return z
 
 
-def combine_netcdfs(file_paths,shp_file_path,root):
+def combine_netcdfs(file_paths:list,shp_file_path:str,root:str) -> np.ndarray :
     shp_file = geopandas.read_file(shp_file_path, crs="epsg:4326")
+    canada_shape_file = geopandas.read_file(f'{config.SHAPEFILE_PATH}lpr_000b21a_e/lpr_000b21a_e.shp')
+
     out = np.array([])
-    coords = True
     for file in file_paths:
         ds = xr.open_dataset(root + file)
         var = file.split('_')[0]
-        arr = netcdf_to_numpy(ds,var,shp_file,coords)
+        arr = netcdfToNumpy(ds,var,shp_file,canada_shape_file)
         if(len(out) == 0):
             out = arr
         else:
             out = np.concatenate((out,arr),1)
-        if(coords):
-            coords = False
     return out 
 
-def netcdf_to_numpy(netcdf_file,variable,shape_file):
-    #need to check why mod makes this break ------ long180 = (long360 + 180) % 360 - 180
-    netcdf_file['lon'] = netcdf_file['lon'] - 360 if np.any(netcdf_file['lon'] > 180) else netcdf_file['lon']
-    netcdf_file = netcdf_file[variable]
-    netcdf_file.rio.set_spatial_dims(x_dim="lon", y_dim="lat", inplace=True)
-    netcdf_file.rio.write_crs("epsg:4326", inplace=True)
-    clipped = netcdf_file.rio.clip(shape_file.geometry.apply(mapping), shape_file.crs,drop=True)
-    df = clipped.to_dataframe().reset_index()
-    df = df[df[variable].notna()]
-    return df[[variable]].values
 
 
 
@@ -73,9 +64,14 @@ if __name__ == "__main__":
 
     ds = CMIPDataset([
         'lai_Lmon_CESM2_land-hist_r1i1p1f1_gn_185001-201512',
+        'pr_Amon_CESM2_land-hist_r1i1p1f1_gn_185001-201512',
+        'tas_Amon_CESM2_land-hist_r1i1p1f1_gn_185001-201512',
         'treeFrac_Lmon_CESM2_land-hist_r1i1p1f1_gn_194901-201512.nc',
-        'cVeg_Lmon_CESM2_land-hist_r1i1p1f1_gn_185001-201512.nc'],
-        '/Users/gclyne/thesis/data/NABoreal.shp','/Users/gclyne/thesis/data/'
+        'cVeg_Lmon_CESM2_land-hist_r1i1p1f1_gn_185001-201512.nc',
+        'cSoil_Emon_CESM2_land-hist_r1i1p1f1_gn_185001-201512.nc',
+        'cLitter_Lmon_CESM2_land-hist_r1i1p1f1_gn_185001-201512.nc',
+        'cCwd_Lmon_CESM2_land-hist_r1i1p1f1_gn_185001-201512.nc'],
+        f'{config.SHAPEFILE_PATH}NABoreal.shp',f'{config.CESM_PATH}'
         )
     ds.data = (ds.data - ds.data.mean()) / ds.data.std() #where should this be done? 
 

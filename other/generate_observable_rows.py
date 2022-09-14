@@ -15,8 +15,8 @@ def getRow(nfis_tif,year,lat,lon,next_lat,next_lon) -> None:
     clipped_nfis = clipNFIS(nfis_tif,lat,lon,next_lat,next_lon)
     observed_tree_cover = countNFIS(clipped_nfis)
     era_yearly_avg = eraYearlyAverage(era_temp,lat,lon,next_lat,next_lon,year)
-    lai = getMODISLAI(lat,lon,next_lat,next_lon,year,0,{})
-    elev = elevation(lat,lon,next_lat,next_lon,0,{})
+    lai = getMODISLAI(lat,lon,next_lat,next_lon,year)
+    elev = elevation(lat,lon,next_lat,next_lon)
     nfis_tif.close()
     era_temp.close()
     #append year to row for timeseries potential,can drop this when doing testing - append lat lon for unique key (comibned w year)
@@ -72,6 +72,8 @@ if __name__ == '__main__':
                 p.apply_async(getRow,[nfis_tif,year,lat,lon,next_lat,next_lon],callback = writer.writerow)
             p.close()
             p.join()
+            duration = time.time() - start_time
+            print(f'{year} completed in {duration} seconds.')    
         nfis_tif.close()
     observable_rows.close()
     duration = time.time() - start_time

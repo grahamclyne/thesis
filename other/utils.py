@@ -38,7 +38,7 @@ def getCoordinates(latlon):
     return lat,lon,next_lat,next_lon
 
 
-def getMODISLAI(lat,lon,next_lat,next_lon,year,procnum,process_dict):
+def getMODISLAI(lat,lon,next_lat,next_lon,year):
     try:     
         ee.Initialize()
     except:
@@ -52,15 +52,26 @@ def getMODISLAI(lat,lon,next_lat,next_lon,year,procnum,process_dict):
     modis = modis.clip(b_box_bounds)
     pixelCountStats = modis.reduceRegion(reducer=ee.Reducer.mean(),geometry=b_box,bestEffort=True,maxPixels=1e9,scale=20)
     output = pixelCountStats.getInfo()
-    # process_dict[procnum] = output['Lai_500m']
     if(not output):
-        process_dict[procnum] = 0
         return 0 
     else:
-        process_dict[procnum] = output['Lai_500m']
         return output['Lai_500m']
 
+def netcdfToNumpy(netcdf_file,variable,shape_file,canada_shape_file):
+    netcdf_file['lon'] = netcdf_file['lon'] - 360 if np.any(netcdf_file['lon'] > 180) else netcdf_file['lon']
+    netcdf_file = netcdf_file.groupby('time.year').mean()
+    netcdf_file = netcdf_file.sel(year=netcdf_file.year>=1949)
+    netcdf_file = netcdf_file[variable]
+    netcdf_file.rio.set_spatial_dims(x_dim="lon", y_dim="lat", inplace=True)
+    netcdf_file.rio.write_crs("epsg:4326", inplace=True)
+    clipped = netcdf_file.rio.clip(shape_file.geometry.apply(mapping), shape_file.crs,drop=True)
+    clipped = clipped.rio.clip(canada_shape_file.geometry.apply(mapping), canada_shape_file.crs,drop=True)
 
+    df = clipped.to_dataframe().reset_index()
+    df = df[df[variable].notna()]
+    return df[[variable]].values
+
+    
 def countNFIS(nfis_tif):
     tree_coverage = nfis_tif.where(np.isin(nfis_tif.data,[230,220,210,81])) #should forested wetland, 81, be included? 
     tree_coverage = tree_coverage.groupby('x')
@@ -69,22 +80,16 @@ def countNFIS(nfis_tif):
     return tree_coverage.values / nfis_tif.size * 100
 
 
-def getNFISAverage(lat,lon,next_lat,next_lon,procnum,process_dict) -> None: 
-    year = 2010
-    nfis_tif = rioxarray.open_rasterio(f'/Users/gclyne/Downloads/CA_forest_VLCE2_{year}/CA_forest_VLCE2_{year}.tif',decode_coords='all')
-    process_dict[procnum] =  countNFIS(clipNFIS(nfis_tif,lat,lon,next_lat,next_lon))
-    nfis_tif.close()
-
 def eraYearlyAverage(era,lat,lon,next_lat,next_lon,year):
     era = era.groupby('time.year').mean()
     era = era.isel(
-    year=year - 1984, #this only works if first year of data is 1984
+    year=year - era.year.min().values.item(), #this only works if first year of data is 1984
     latitude=np.logical_and(era.latitude >= lat,era.latitude <= next_lat), 
     longitude=np.logical_and(era.longitude >= lon, era.longitude <= next_lon)
     )
     return (era.sum() / (len(era.latitude) * len(era.longitude)))[list(era.keys())[0]].values.item()
 
-def elevation(lat,lon,next_lat,next_lon,procnum,process_dict):
+def elevation(lat,lon,next_lat,next_lon):
     try:     
         ee.Initialize()
     except:
@@ -95,7 +100,6 @@ def elevation(lat,lon,next_lat,next_lon,procnum,process_dict):
     modis = ee.ImageCollection("JAXA/ALOS/AW3D30/V3_2").select('DSM').mean()
     modis = modis.clip(b_box_bounds)
     pixelCountStats = modis.reduceRegion(reducer=ee.Reducer.mean(),geometry=b_box,bestEffort=True,maxPixels=1e9,scale=20)
-    process_dict[procnum] = pixelCountStats.getInfo()['DSM']
     return pixelCountStats.getInfo()['DSM']
 
 
