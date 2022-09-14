@@ -1,5 +1,5 @@
 import cdsapi
-from constants import DATA_FOLDER
+import config
 c = cdsapi.Client()
 variable = '2m_temperature'
 c.retrieve(
@@ -33,4 +33,4 @@ c.retrieve(
             '2014', '2015',
         ],
     },
-    f'{DATA_FOLDER}_{variable}.nc')
+    f'{config.ERA_PATH}_{variable}.nc')
