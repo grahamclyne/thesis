@@ -31,3 +31,8 @@ pipreq .  (using pip freeze > requirements.txt will give all apckages in ENV, no
 
 
 geopandas and xarray have heavy dependency requirements, watch out
+
+
+observable data: 
+lai: float between 0 and ~11? 
+temp: float in K 

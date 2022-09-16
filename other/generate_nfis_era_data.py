@@ -65,7 +65,6 @@ if __name__ == '__main__':
         duration = time.time() - start_time
         print(f'{year} completed at {duration} seconds.')    
         nfis_tif.close()
-        break
     observable_rows.close()
     duration = time.time() - start_time
     print(f'Completed in {duration} seconds.')

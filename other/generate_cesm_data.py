@@ -4,7 +4,6 @@ import time
 from shapely.geometry import mapping
 import geopandas
 import numpy as np
-import rioxarray 
 
 def netcdfToNumpy(netcdf_file,variable,shape_file,canada_shape_file):
     netcdf_file['lon'] = netcdf_file['lon'] - 360 if np.any(netcdf_file['lon'] > 180) else netcdf_file['lon']
@@ -18,7 +17,7 @@ def netcdfToNumpy(netcdf_file,variable,shape_file,canada_shape_file):
 
     df = clipped.to_dataframe().reset_index()
     df = df[df[variable].notna()]
-    return df[[variable]].values
+    return df[[variable,'year','lat','lon']].values
 
 
 def combineNetCDFs(file_paths:list,shp_file_path:str,canada_shape_file_path) -> np.ndarray :
@@ -26,14 +25,23 @@ def combineNetCDFs(file_paths:list,shp_file_path:str,canada_shape_file_path) -> 
     canada_shape_file = geopandas.read_file(canada_shape_file_path)
 
     out = np.array([])
+    years = []
     for file in file_paths:
         ds = xr.open_dataset(config.CESM_PATH + '/' + file,engine='netcdf4')
         var = file.split('_')[0]
         arr = netcdfToNumpy(ds,var,shp_file,canada_shape_file)
+        #get year for only one column, they will all be the same
+        years = arr[:,1].reshape(-1,1)
+        lat = arr[:,2].reshape(-1,1)
+        lon = arr[:,3].reshape(-1,1)
         if(len(out) == 0):
-            out = arr
+            out = arr[:,0].reshape(-1,1)
         else:
-            out = np.concatenate((out,arr),1)
+            out = np.concatenate((out,arr[:,0].reshape(-1,1)),1)
+    out = np.concatenate((out,years),1)
+    out = np.concatenate((out,lat),1)
+    out = np.concatenate((out,lon),1)
+
     return out 
 
 # num of rows outputted should be # of years (31) * length of boreal coordinates (788) = 24428
@@ -51,6 +59,6 @@ if __name__ == '__main__':
     canada_shape_file_path = f'{config.SHAPEFILE_PATH}/lpr_000b21a_e/lpr_000b21a_e.shp'
     boreal_shape_file_path = f'{config.SHAPEFILE_PATH}/NABoreal.shp'
     combined = combineNetCDFs(input_files,boreal_shape_file_path,canada_shape_file_path)
-    np.savetxt(f'{config.DATA_PATH}/cesm_data.csv',np.asarray(combined),delimiter=',')
+    np.savetxt(f'{config.CESM_PATH}/cesm_data.csv',np.asarray(combined),delimiter=',')
     duration = time.time() - start_time
     print(f'Completed in {duration} seconds.')
