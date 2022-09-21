@@ -4,6 +4,8 @@ from pyproj import Transformer
 import ee
 import folium
 import rioxarray
+from shapely.geometry import Polygon
+from pyproj import Geod
 
 def clipNFIS(nfis_tif,lat,lon,next_lat,next_lon) -> xr.DataArray:
         #this is a hack because need to get conical coordinates (at least smaller size) before reproejcting to 4326, otherwise takes too long
@@ -30,7 +32,7 @@ def clipNFIS(nfis_tif,lat,lon,next_lat,next_lon) -> xr.DataArray:
     return sl
 
 
-def getCoordinates(latlon,latitudes,longitudes):
+def getCoordinates(latlon:tuple,latitudes:list,longitudes:list):
     lat = latlon[0]
     lon = latlon[1]
     next_lat = latitudes[latitudes.index(lat) + 1]
@@ -92,6 +94,14 @@ def elevation(lat,lon,next_lat,next_lon):
     pixelCountStats = modis.reduceRegion(reducer=ee.Reducer.mean(),geometry=b_box,bestEffort=True,maxPixels=1e9,scale=20)
     return pixelCountStats.getInfo()['DSM']
 
+def getArea(lat,lon,next_lat,next_lon) -> float:
+    #returns metre squared
+    poly = Polygon([(lon,lat),(next_lon,lat),(lon,next_lat),(next_lat,next_lon),(lon,lat)])
+    #put in counterclockwise rotation otherwise does not work
+    geod = Geod(ellps="WGS84") #assume ellipsoid here
+    #abs value, could be negative depending on orientation?
+    area = abs(geod.geometry_area_perimeter(poly)[0])
+    return area
 
 # Define a method for displaying Earth Engine image tiles on a folium map.
 def add_ee_layer(self, ee_object, vis_params, name) -> None:

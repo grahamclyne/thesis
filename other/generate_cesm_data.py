@@ -55,7 +55,8 @@ if __name__ == '__main__':
         'cVeg_Lmon_CESM2_land-hist_r1i1p1f1_gn_185001-201512.nc',
         'cSoil_Emon_CESM2_land-hist_r1i1p1f1_gn_185001-201512.nc',
         'cLitter_Lmon_CESM2_land-hist_r1i1p1f1_gn_185001-201512.nc',
-        'cCwd_Lmon_CESM2_land-hist_r1i1p1f1_gn_185001-201512.nc']
+        'cCwd_Lmon_CESM2_land-hist_r1i1p1f1_gn_185001-201512.nc',
+        'cLand_Emon_CESM2_land-hist_r1i1p1f1_gn_185001-201512.nc']
     canada_shape_file_path = f'{config.SHAPEFILE_PATH}/lpr_000b21a_e/lpr_000b21a_e.shp'
     boreal_shape_file_path = f'{config.SHAPEFILE_PATH}/NABoreal.shp'
     combined = combineNetCDFs(input_files,boreal_shape_file_path,canada_shape_file_path)
