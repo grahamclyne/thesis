@@ -36,3 +36,9 @@ geopandas and xarray have heavy dependency requirements, watch out
 observable data: 
 lai: float between 0 and ~11? 
 temp: float in K 
+......
+
+
+
+
+assuming CESM is geodesic and not planar when calculating m^2 area from lat lon

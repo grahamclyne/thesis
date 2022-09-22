@@ -60,6 +60,7 @@ if __name__ == '__main__':
     canada_shape_file_path = f'{config.SHAPEFILE_PATH}/lpr_000b21a_e/lpr_000b21a_e.shp'
     boreal_shape_file_path = f'{config.SHAPEFILE_PATH}/NABoreal.shp'
     combined = combineNetCDFs(input_files,boreal_shape_file_path,canada_shape_file_path)
-    np.savetxt(f'{config.CESM_PATH}/cesm_data.csv',np.asarray(combined),delimiter=',')
+    header = ','.join(list(map(lambda x: x.split('_')[0],input_files)) + ['years','latitude','longitude'])
+    np.savetxt(f'{config.CESM_PATH}/cesm_data.csv',np.asarray(combined),delimiter=',',header=header)
     duration = time.time() - start_time
     print(f'Completed in {duration} seconds.')
