@@ -84,7 +84,7 @@ if __name__ == "__main__":
 
     model = Net()
     loss_function = nn.MSELoss()
-    learning_rate = 0.00001
+    learning_rate = 0.001
     train_ldr = T.utils.data.DataLoader(train,batch_size=100,shuffle=True)
     test_ldr = T.utils.data.DataLoader(test,batch_size=100,shuffle=True)
     final_ldr = T.utils.data.DataLoader(final_test,batch_size=1,shuffle=False)
@@ -92,7 +92,7 @@ if __name__ == "__main__":
     losses = []
     print(model.parameters())
     min_valid_loss = np.inf
-    for epoch in range(150):
+    for epoch in range(100):
         start_time = time.time()
         train_loss = 0
         model.train()
@@ -125,13 +125,13 @@ if __name__ == "__main__":
     total = 0
     pred_total = 0
     for X,y in final_ldr:
-        print(X.data.numpy(),y.data.numpy())
+        # print(X.data.numpy(),y.data.numpy())
         final_pred = model(X.float())
         loss = loss_function(final_pred,y.float())
         final_loss += loss.item() * X.size(0)
         total = total + y.float()
         pred_total += final_pred
-        print('prediction:',final_pred.data.numpy())
+        # print('prediction:',final_pred.data.numpy())
     print(final_loss,total,pred_total)
     # print(final_loss)
     # plt.plot(losses)

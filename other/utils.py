@@ -6,9 +6,13 @@ import folium
 import rioxarray
 from shapely.geometry import Polygon
 from pyproj import Geod
+from shapely.geometry import mapping 
+import geopandas as gpd
+from shapely.ops import transform
+from shapely.geometry import Polygon
 
 def clipNFIS(nfis_tif,lat,lon,next_lat,next_lon) -> xr.DataArray:
-        #this is a hack because need to get conical coordinates (at least smaller size) before reproejcting to 4326, otherwise takes too long
+        #this is a hack because need to get conical coordinates (at least smaller size) before clipping shapefile, otherwise takes too long
 
     transformer =Transformer.from_crs('epsg:4326','epsg:3978')
     x1,y1 = transformer.transform(lat,lon)
@@ -23,13 +27,21 @@ def clipNFIS(nfis_tif,lat,lon,next_lat,next_lon) -> xr.DataArray:
         y=(nfis_tif.y >= y_min) & (nfis_tif.y < y_max),
         band=0
         )
-    sl = sl.rio.reproject('EPSG:4236')
+    poly = Polygon([[lon,lat],[next_lon,lat],[next_lon,next_lat],[lon,next_lat],[lon,lat]])
+    import pyproj
 
-    sl = sl.isel(
-        x=np.logical_and(sl.x >= lon, sl.x <= next_lon),
-        y=np.logical_and(sl.y >= lat, sl.y <= next_lat)
-        )
-    return sl
+
+
+    wgs84 = pyproj.CRS('EPSG:4326')
+    out = pyproj.CRS('EPSG:3978')
+
+    project = pyproj.Transformer.from_crs(wgs84, out, always_xy=True).transform
+    poly_proj = transform(project, poly)
+
+    projected_poly = gpd.GeoDataFrame(index=[0], crs='epsg:3978', geometry=[poly_proj])
+    sl.rio.write_crs("epsg:3978", inplace=True)
+    clipped = sl.rio.clip(projected_poly.geometry.apply(mapping), projected_poly.crs,drop=True)
+    return clipped
 
 
 def getCoordinates(latlon:tuple,latitudes:list,longitudes:list):
