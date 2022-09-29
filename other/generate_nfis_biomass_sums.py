@@ -1,9 +1,7 @@
 import multiprocessing
-from utils import clipNFIS,countNFIS,eraYearlyAverage,getCoordinates
+from utils import clipNFIS,getCoordinates
 import csv 
-from datetime import date
 import rioxarray
-import xarray as xr
 import config
 import time
 import multiprocessing
@@ -42,18 +40,18 @@ if __name__ == "__main__":
 
     # print(boreal_coor)
     x = iter(boreal_coordinates)
-    # p = multiprocessing.Pool(5)
-    # with p:
-    for i in range(int(len(boreal_coordinates))):
-        lat,lon,next_lat,next_lon = getCoordinates(next(x),ordered_latitudes,ordered_longitudes)
-        print(lat,lon)
-        row = getRow(nfis_tif,lat,lon,next_lat,next_lon)
-        print(row)
+    p = multiprocessing.Pool(5)
+    with p:
+        for i in range(int(len(boreal_coordinates))):
+            lat,lon,next_lat,next_lon = getCoordinates(next(x),ordered_latitudes,ordered_longitudes)
+            print(lat,lon)
+            row = getRow(nfis_tif,lat,lon,next_lat,next_lon)
+            print(row)
             #beware, failed child processes do not give error by default
-            # p.apply_async(getRow,[nfis_tif,lat,lon,next_lat,next_lon],callback = writer.writerow)
+            p.apply_async(getRow,[nfis_tif,lat,lon,next_lat,next_lon],callback = writer.writerow)
             # x.get() use this line for debugging
-        # p.close()
-        # p.join()
+        p.close()
+        p.join()
     nfis_tif.close()
     observable_rows.close()
     duration = time.time() - start_time
