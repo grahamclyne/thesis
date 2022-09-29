@@ -26,7 +26,7 @@ deactivate
 
 to generate requirements file:
 
-pipreq .  (using pip freeze > requirements.txt will give all apckages in ENV, not just ones used in proj)
+pipreqs .  (using pip freeze > requirements.txt will give all apckages in ENV, not just ones used in proj)
 
 
 
