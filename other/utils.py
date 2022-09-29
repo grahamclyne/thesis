@@ -10,6 +10,7 @@ from shapely.geometry import mapping
 import geopandas as gpd
 from shapely.ops import transform
 from shapely.geometry import Polygon
+import pyproj
 
 def clipNFIS(nfis_tif,lat,lon,next_lat,next_lon) -> xr.DataArray:
         #this is a hack because need to get conical coordinates (at least smaller size) before clipping shapefile, otherwise takes too long
@@ -28,19 +29,20 @@ def clipNFIS(nfis_tif,lat,lon,next_lat,next_lon) -> xr.DataArray:
         band=0
         )
     poly = Polygon([[lon,lat],[next_lon,lat],[next_lon,next_lat],[lon,next_lat],[lon,lat]])
-    import pyproj
 
-
-
+    print(poly)
+    print(lat,lon,next_lat,next_lon)
     wgs84 = pyproj.CRS('EPSG:4326')
     out = pyproj.CRS('EPSG:3978')
 
     project = pyproj.Transformer.from_crs(wgs84, out, always_xy=True).transform
     poly_proj = transform(project, poly)
-
+    print(poly_proj)
     projected_poly = gpd.GeoDataFrame(index=[0], crs='epsg:3978', geometry=[poly_proj])
     sl.rio.write_crs("epsg:3978", inplace=True)
+    print(sl)
     clipped = sl.rio.clip(projected_poly.geometry.apply(mapping), projected_poly.crs,drop=True)
+    print(clipped)
     return clipped
 
 
