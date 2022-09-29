@@ -1,4 +1,3 @@
-import numpy as np
 import xarray as xr
 from pyproj import Transformer
 import ee
@@ -9,8 +8,9 @@ from pyproj import Geod
 from shapely.geometry import mapping 
 import geopandas as gpd
 from shapely.ops import transform
-from shapely.geometry import Polygon
 import pyproj
+import numpy as np
+
 
 def clipNFIS(nfis_tif,lat,lon,next_lat,next_lon) -> xr.DataArray:
         #this is a hack because need to get conical coordinates (at least smaller size) before clipping shapefile, otherwise takes too long
