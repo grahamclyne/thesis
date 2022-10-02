@@ -1,11 +1,11 @@
 import multiprocessing
 import csv 
-import rioxarray
+
 import config
 import time
 import multiprocessing
-from pyproj import Transformer
 import numpy as np
+
 from shapely.geometry import Polygon
 import rioxarray
 from shapely.ops import transform
@@ -26,7 +26,7 @@ def getCoordinates(latlon:tuple,latitudes:list,longitudes:list):
 def clipNFIS(nfis_tif,lat,lon,next_lat,next_lon) -> xr.DataArray:
         #this is a hack because need to get conical coordinates (at least smaller size) before clipping shapefile, otherwise takes too long
 
-    transformer =Transformer.from_crs('epsg:4326','epsg:3978')
+    transformer =pyproj.Transformer.from_crs('epsg:4326','epsg:3978')
     x1,y1 = transformer.transform(lat,lon)
     x2,y2 = transformer.transform(next_lat,next_lon)
     bounds = 50000
@@ -58,7 +58,7 @@ def clipNFIS(nfis_tif,lat,lon,next_lat,next_lon) -> xr.DataArray:
 
 def getRow(nfis_tif,lat,lon,next_lat,next_lon):
     print(lat,lon,multiprocessing.current_process())
-    agb = clipNFIS(nfis_tif,lat,lon,next_lat,next_lon).sum()
+    agb = clipNFIS(nfis_tif,lat,lon,next_lat,next_lon).sum().values
     return [agb,lat,lon]
 
 if __name__ == "__main__":
