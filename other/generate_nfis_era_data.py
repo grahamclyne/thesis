@@ -6,7 +6,6 @@ import rioxarray
 import xarray as xr
 import config
 import time
-import multiprocessing
 
 def getRow(nfis_tif,year,lat,lon,next_lat,next_lon):
     print(lat,lon,multiprocessing.current_process())

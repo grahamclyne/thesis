@@ -11,6 +11,7 @@ then
     #SBATCH --time=12:00:00
     #SBATCH --account=def-dmatthew
     #SBATCH --cpus-per-task=32
+    #SBATCH --mem=40G
     module load python/3.9
     export NFIS_PATH='~/scratch'
     export NUM_CORES=32
