@@ -8,7 +8,7 @@ then
     export NFIS_PATH='/Users/gclyne/thesis/data/NFIS'
 elif [ $HOSTNAME == "cedar5.cedar.computecanada.ca" ];
 then 
-    #SBATCH --time=12:00:00
+    #SBATCH --time=03:00:00
     #SBATCH --account=def-dmatthew
     #SBATCH --cpus-per-task=32
     #SBATCH --mem=40G

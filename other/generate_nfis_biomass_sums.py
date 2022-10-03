@@ -1,64 +1,15 @@
 import multiprocessing
 import csv 
-
+from utils import clipNFIS,getCoordinates
 import config
 import time
 import multiprocessing
-import numpy as np
-
-from shapely.geometry import Polygon
 import rioxarray
-from shapely.ops import transform
-import xarray as xr
-import pyproj
-from shapely.geometry import mapping 
-import geopandas as gpd
 
-def getCoordinates(latlon:tuple,latitudes:list,longitudes:list):
-    lat = latlon[0]
-    lon = latlon[1]
-    next_lat = latitudes[latitudes.index(lat) + 1]
-    next_lon = longitudes[longitudes.index(lon) + 1]
-    return lat,lon,next_lat,next_lon
-
-
-
-def clipNFIS(nfis_tif,lat,lon,next_lat,next_lon) -> xr.DataArray:
-        #this is a hack because need to get conical coordinates (at least smaller size) before clipping shapefile, otherwise takes too long
-
-    transformer =pyproj.Transformer.from_crs('epsg:4326','epsg:3978')
-    x1,y1 = transformer.transform(lat,lon)
-    x2,y2 = transformer.transform(next_lat,next_lon)
-    bounds = 50000
-    x_min = np.amax([nfis_tif['x'].min(),x1-bounds])
-    x_max = np.amin([nfis_tif['x'].max(),x2+bounds])
-    y_min = np.amax([nfis_tif['y'].min(),y1-bounds])
-    y_max = np.amin([nfis_tif['y'].max(),y2+bounds])
-    sl = nfis_tif.isel(
-        x=(nfis_tif.x >= x_min) & (nfis_tif.x < x_max),
-        y=(nfis_tif.y >= y_min) & (nfis_tif.y < y_max),
-        band=0
-        )
-    poly = Polygon([[lon,lat],[next_lon,lat],[next_lon,next_lat],[lon,next_lat],[lon,lat]])
-
-    print(poly)
-    print(lat,lon,next_lat,next_lon)
-    wgs84 = pyproj.CRS('EPSG:4326')
-    out = pyproj.CRS('EPSG:3978')
-
-    project = pyproj.Transformer.from_crs(wgs84, out, always_xy=True).transform
-    poly_proj = transform(project, poly)
-    print(poly_proj)
-    projected_poly = gpd.GeoDataFrame(index=[0], crs='epsg:3978', geometry=[poly_proj])
-    sl.rio.write_crs("epsg:3978", inplace=True)
-    print(sl)
-    clipped = sl.rio.clip(projected_poly.geometry.apply(mapping), projected_poly.crs,drop=True)
-    print(clipped)
-    return clipped
 
 def getRow(nfis_tif,lat,lon,next_lat,next_lon):
     print(lat,lon,multiprocessing.current_process())
-    agb = clipNFIS(nfis_tif,lat,lon,next_lat,next_lon).sum().values
+    agb = clipNFIS(nfis_tif,lat,lon,next_lat,next_lon).mean().values
     return [agb,lat,lon]
 
 if __name__ == "__main__":
@@ -90,18 +41,18 @@ if __name__ == "__main__":
 
     # print(boreal_coor)
     x = iter(boreal_coordinates)
-    p = multiprocessing.Pool(5)
-    with p:
-        for i in range(int(len(boreal_coordinates))):
-            lat,lon,next_lat,next_lon = getCoordinates(next(x),ordered_latitudes,ordered_longitudes)
-            print(lat,lon)
-            row = getRow(nfis_tif,lat,lon,next_lat,next_lon)
-            print(row)
-            #beware, failed child processes do not give error by default
-            p.apply_async(getRow,[nfis_tif,lat,lon,next_lat,next_lon],callback = writer.writerow)
-            # x.get() use this line for debugging
-        p.close()
-        p.join()
+    # p = multiprocessing.Pool(5)
+    # with p:
+    for i in range(int(len(boreal_coordinates))):
+        lat,lon,next_lat,next_lon = getCoordinates(next(x),ordered_latitudes,ordered_longitudes)
+        print(lat,lon)
+        row = getRow(nfis_tif,lat,lon,next_lat,next_lon)
+        writer.writerow(row)
+        #beware, failed child processes do not give error by default
+        # p.apply_async(getRow,[nfis_tif,lat,lon,next_lat,next_lon],callback = writer.writerow)
+        # x.get() use this line for debugging
+        # p.close()
+        # p.join()
     nfis_tif.close()
     observable_rows.close()
     duration = time.time() - start_time
