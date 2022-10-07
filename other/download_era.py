@@ -1,13 +1,21 @@
 import cdsapi
 import config
+import argparse
 c = cdsapi.Client()
-variable = '2m_temperature'
+# variable = '2m_temperature'
+# variable = 'leaf_area_index_high_vegetation'
+# variable ='leaf_area_index_low_vegetation'
+# variable = 'total_precipitation'
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--variable',type=str)
+args = parser.parse_args()
 c.retrieve(
     'reanalysis-era5-land-monthly-means',
     {
         'format': 'netcdf',
         'product_type': 'monthly_averaged_reanalysis',
-        'variable': variable,
+        'variable': args.variable,
         'month': [
             '01', '02', '03',
             '04', '05', '06',
@@ -30,7 +38,7 @@ c.retrieve(
             '2005', '2006', '2007',
             '2008', '2009', '2010',
             '2011', '2012', '2013',
-            '2014', '2015',
+            '2014', '2015','2016','2017','2018','2019'
         ],
     },
-    f'{config.ERA_PATH}_{variable}.nc')
+    f'{config.ERA_PATH}/{args.variable}.nc')

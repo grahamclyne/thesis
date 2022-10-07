@@ -133,6 +133,7 @@ if __name__ == "__main__":
         pred_total += final_pred
         # print('prediction:',final_pred.data.numpy())
     print(final_loss,total,pred_total)
+    T.save(model.state_dict(), '/Users/gclyne/thesis/data/trained_net')
     # print(final_loss)
     # plt.plot(losses)
     # plt.ylabel('loss')

@@ -9,13 +9,15 @@ import time
 
 def getRow(nfis_tif,year,lat,lon,next_lat,next_lon):
     print(lat,lon,multiprocessing.current_process())
-    era_temp = xr.open_dataset(f'{config.ERA_PATH}/_2m_temperature.nc')
     clipped_nfis = clipNFIS(nfis_tif,lat,lon,next_lat,next_lon)
-    observed_tree_cover = countNFIS(clipped_nfis)
-    era_yearly_avg = eraYearlyAverage(era_temp,lat,lon,next_lat,next_lon,year)
-    era_temp.close()
+    # observed_tree_cover = countNFIS(clipped_nfis)
+    observed_tree_cover = countNFIS(clipped_nfis,[210,220,230,81])
+    observed_wetland = countNFIS(clipped_nfis,[80])
+    observed_shrub_bryoid_herb = countNFIS(clipped_nfis,[100,50,40])
+    
+
     #append year to row for timeseries potential,can drop this when doing testing - append lat lon for unique key (comibned w year)
-    row = [observed_tree_cover,era_yearly_avg,year,lat,lon]
+    row = [observed_tree_cover,year,lat,lon]
     return row
 
 
@@ -43,11 +45,10 @@ if __name__ == '__main__':
             ordered_longitudes.append(float(row[0]))
 
     year = date(1984,1,1).year
-    range(year, year + 31, 1)
 
-    observable_rows = open(f'{config.DATA_PATH}/observable_data.csv','w')
+    observable_rows = open(f'{config.DATA_PATH}/nfis_tree_cover_data.csv','w')
     writer = csv.writer(observable_rows)
-    writer.writerow(['observed_tree_cover','era_temp2m','year','lat','lon'])
+    writer.writerow(['observed_tree_cover','year','lat','lon'])
 
     for year in range(year,year+36,1):
         print(year)

@@ -12,6 +12,21 @@ import config
 import csv 
 
 
+def gridLatitudes() -> list:
+    ordered_latitudes = []
+    with open(f'{config.DATA_PATH}/grid_latitudes.csv',newline='') as csvfile:
+        reader = csv.reader(csvfile,delimiter=',')
+        for row in reader:
+            ordered_latitudes.append(float(row[0]))
+    return ordered_latitudes
+
+def gridLongitudes() -> list:
+    ordered_longitudes = []
+    with open(f'{config.DATA_PATH}/grid_longitudes.csv',newline='') as csvfile:
+        reader = csv.reader(csvfile,delimiter=',')
+        for row in reader:
+            ordered_longitudes.append(float(row[0]))
+    return ordered_longitudes   
 
 def borealCoordinates() -> list:
     boreal_coordinates = []
@@ -71,8 +86,8 @@ def getCoordinates(latlon:tuple,latitudes:list,longitudes:list):
 
 
 
-def countNFIS(nfis_tif):
-    tree_coverage = nfis_tif.where(np.isin(nfis_tif.data,[230,220,210,81])) #should forested wetland, 81, be included? 
+def countNFIS(nfis_tif:xr.Dataset,land_cover_classes:list) -> float:
+    tree_coverage = nfis_tif.where(np.isin(nfis_tif.data,land_cover_classes)) #should forested wetland, 81, be included? 
     tree_coverage = tree_coverage.groupby('x')
     tree_coverage = tree_coverage.count('y')
     tree_coverage = tree_coverage.sum()
