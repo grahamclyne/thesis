@@ -6,8 +6,7 @@ then
     export NUM_CORES=`sysctl -n hw.ncpu`
     export PROJECT_PATH='/Users/gclyne/thesis'
     export NFIS_PATH='/Users/gclyne/thesis/data/NFIS'
-elif [ $HOSTNAME == "cedar5.cedar.computecanada.ca" ];
-then 
+else
     #SBATCH --time=03:00:00
     #SBATCH --account=def-dmatthew
     #SBATCH --cpus-per-task=32

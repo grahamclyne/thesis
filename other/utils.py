@@ -8,6 +8,18 @@ import geopandas as gpd
 from shapely.ops import transform
 import pyproj
 import numpy as np
+import config
+import csv 
+
+
+
+def borealCoordinates() -> list:
+    boreal_coordinates = []
+    with open(f'{config.DATA_PATH}/boreal_latitudes_longitudes.csv', newline='') as csvfile:
+        spamreader = csv.reader(csvfile, delimiter=',')
+        for row in spamreader:
+            boreal_coordinates.append((float(row[0]),float(row[1])))
+    return boreal_coordinates
 
 
 def clipNFIS(nfis_tif,lat,lon,next_lat,next_lon) -> xr.DataArray:

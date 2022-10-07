@@ -3,7 +3,7 @@
 export PROJECT_PATH='/Users/gclyne/thesis'
 export NUM_CORES=`sysctl -n hw.ncpu`
 export NFIS_PATH='/Users/gclyne/thesis/data/NFIS'
-for year in {2007..2015}
+for year in {2012..2015}
 do
     python other/generate_gee_data.py --output_file_name modis_lai_data --variable_name lai --year $year  
 done

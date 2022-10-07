@@ -2,7 +2,8 @@ import time
 import config
 import csv
 import ee
-from utils import getCoordinates, getMODISLAI, elevation
+from utils import getCoordinates
+from gee_utils import getMODISLAI, elevation
 from argparse import ArgumentParser
 # num of rows outputted should be # of years (31) * length of boreal coordinates (788) = 24428
 
