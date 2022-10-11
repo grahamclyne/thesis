@@ -12,29 +12,14 @@ import config
 import csv 
 
 
-def gridLatitudes() -> list:
-    ordered_latitudes = []
-    with open(f'{config.DATA_PATH}/grid_latitudes.csv',newline='') as csvfile:
-        reader = csv.reader(csvfile,delimiter=',')
-        for row in reader:
-            ordered_latitudes.append(float(row[0]))
-    return ordered_latitudes
 
-def gridLongitudes() -> list:
-    ordered_longitudes = []
-    with open(f'{config.DATA_PATH}/grid_longitudes.csv',newline='') as csvfile:
-        reader = csv.reader(csvfile,delimiter=',')
-        for row in reader:
-            ordered_longitudes.append(float(row[0]))
-    return ordered_longitudes   
-
-def borealCoordinates() -> list:
-    boreal_coordinates = []
-    with open(f'{config.DATA_PATH}/boreal_latitudes_longitudes.csv', newline='') as csvfile:
+def readCoordinates(file_name) -> list:
+    coordinates = []
+    with open(f'{config.DATA_PATH}/{file_name}', newline='') as csvfile:
         spamreader = csv.reader(csvfile, delimiter=',')
         for row in spamreader:
-            boreal_coordinates.append((float(row[0]),float(row[1])))
-    return boreal_coordinates
+            coordinates.append((float(row[0]),float(row[1])))
+    return coordinates
 
 
 def clipNFIS(nfis_tif,lat,lon,next_lat,next_lon) -> xr.DataArray:
@@ -54,20 +39,13 @@ def clipNFIS(nfis_tif,lat,lon,next_lat,next_lon) -> xr.DataArray:
         band=0
         )
     poly = Polygon([[lon,lat],[next_lon,lat],[next_lon,next_lat],[lon,next_lat],[lon,lat]])
-
-    print(poly)
-    print(lat,lon,next_lat,next_lon)
     wgs84 = pyproj.CRS('EPSG:4326')
     out = pyproj.CRS('EPSG:3978')
-
     project = pyproj.Transformer.from_crs(wgs84, out, always_xy=True).transform
     poly_proj = transform(project, poly)
-    print(poly_proj)
     projected_poly = gpd.GeoDataFrame(index=[0], crs='epsg:3978', geometry=[poly_proj])
     sl.rio.write_crs("epsg:3978", inplace=True)
-    print(sl)
     clipped = sl.rio.clip(projected_poly.geometry.apply(mapping), projected_poly.crs,drop=True)
-    print(clipped)
     return clipped
 
 

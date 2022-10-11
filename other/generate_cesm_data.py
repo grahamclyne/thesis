@@ -4,32 +4,30 @@ import time
 from shapely.geometry import mapping
 import geopandas
 import numpy as np
-
-def netcdfToNumpy(netcdf_file,variable,shape_file,canada_shape_file):
+import os
+def netcdfToNumpy(netcdf_file,variable,shape_file):
     netcdf_file['lon'] = netcdf_file['lon'] - 360 if np.any(netcdf_file['lon'] > 180) else netcdf_file['lon']
     netcdf_file = netcdf_file.groupby('time.year').mean()
     netcdf_file = netcdf_file.sel(year=netcdf_file.year>=1949)
     netcdf_file = netcdf_file[variable]
     netcdf_file.rio.set_spatial_dims(x_dim="lon", y_dim="lat", inplace=True)
     netcdf_file.rio.write_crs("epsg:4326", inplace=True)
-    clipped = netcdf_file.rio.clip(shape_file.geometry.apply(mapping), shape_file.crs,drop=True)
-    clipped = clipped.rio.clip(canada_shape_file.geometry.apply(mapping), canada_shape_file.crs,drop=True)
+    clipped = netcdf_file.rio.clip([shape_file.geometry.apply(mapping)[0]], shape_file.crs,drop=True)
 
     df = clipped.to_dataframe().reset_index()
     df = df[df[variable].notna()]
     return df[[variable,'year','lat','lon']].values
 
 
-def combineNetCDFs(file_paths:list,shp_file_path:str,canada_shape_file_path) -> np.ndarray :
-    shp_file = geopandas.read_file(shp_file_path, crs="epsg:4326")
-    canada_shape_file = geopandas.read_file(canada_shape_file_path)
+def combineNetCDFs(file_paths:list,shape_file:geopandas.GeoDataFrame) -> np.ndarray :
+    # canada_shape_file = geopandas.read_file(canada_shape_file_path)
 
     out = np.array([])
     years = []
     for file in file_paths:
-        ds = xr.open_dataset(config.CESM_PATH + '/' + file,engine='netcdf4')
+        ds = xr.open_dataset(f'{config.CESM_PATH}/{file}',engine='netcdf4')
         var = file.split('_')[0]
-        arr = netcdfToNumpy(ds,var,shp_file,canada_shape_file)
+        arr = netcdfToNumpy(ds,var,shape_file)
         #get year for only one column, they will all be the same
         years = arr[:,1].reshape(-1,1)
         lat = arr[:,2].reshape(-1,1)
@@ -48,19 +46,13 @@ def combineNetCDFs(file_paths:list,shp_file_path:str,canada_shape_file_path) -> 
 if __name__ == '__main__':
     start_time = time.time()
 
-    input_files =['lai_Lmon_CESM2_land-hist_r1i1p1f1_gn_185001-201512.nc',
-        'pr_Amon_CESM2_land-hist_r1i1p1f1_gn_185001-201512.nc',
-        'tas_Amon_CESM2_land-hist_r1i1p1f1_gn_185001-201512.nc',
-        'treeFrac_Lmon_CESM2_land-hist_r1i1p1f1_gn_194901-201512.nc',
-        'cVeg_Lmon_CESM2_land-hist_r1i1p1f1_gn_185001-201512.nc',
-        'cSoil_Emon_CESM2_land-hist_r1i1p1f1_gn_185001-201512.nc',
-        'cLitter_Lmon_CESM2_land-hist_r1i1p1f1_gn_185001-201512.nc',
-        'cCwd_Lmon_CESM2_land-hist_r1i1p1f1_gn_185001-201512.nc',
-        'cLand_Emon_CESM2_land-hist_r1i1p1f1_gn_185001-201512.nc']
-    canada_shape_file_path = f'{config.SHAPEFILE_PATH}/lpr_000b21a_e/lpr_000b21a_e.shp'
-    boreal_shape_file_path = f'{config.SHAPEFILE_PATH}/NABoreal.shp'
-    combined = combineNetCDFs(input_files,boreal_shape_file_path,canada_shape_file_path)
+    os.chdir(f'{config.CESM_PATH}')
+    input_files = os.listdir()
+
+    shape_file = geopandas.read_file(f'{config.SHAPEFILE_PATH}/NIR2016_MF.shp', crs="epsg:4326")
+
+    combined = combineNetCDFs(input_files,shape_file)
     header = ','.join(list(map(lambda x: x.split('_')[0],input_files)) + ['years','latitude','longitude'])
-    np.savetxt(f'{config.CESM_PATH}/cesm_data.csv',np.asarray(combined),delimiter=',',header=header)
+    np.savetxt(f'{config.DATA_PATH}/cesm_data.csv',np.asarray(combined),delimiter=',',header=header)
     duration = time.time() - start_time
     print(f'Completed in {duration} seconds.')

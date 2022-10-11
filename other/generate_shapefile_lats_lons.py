@@ -1,16 +1,22 @@
+from ast import arg
 import rioxarray
 import numpy as np
 import geopandas
 from shapely.geometry import mapping 
 import xarray as xr
 import csv
+import config
+import argparse 
 
 #this could be any CESM CMIP6 file 
-tree_cover_data = xr.open_dataset('/Users/gclyne/thesis/data/treeFrac_Lmon_CESM2_land-hist_r1i1p1f1_gn_194901-201512.nc')
+parser = argparse.ArgumentParser()
+parser.add_argument('--shape_file_path',type=str)
+parser.add_argument('--output_file_path',type=str)
+args = parser.parse_args()
+tree_cover_data = xr.open_dataset(f'{config.CESM_PATH}/treeFrac_Lmon_CESM2_land-hist_r1i1p1f1_gn_194901-201512.nc')
 
-shape_file = geopandas.read_file('/Users/gclyne/thesis/data/NABoreal.shp',crs="epsg:4326")
-canada_shape_file = geopandas.read_file('/Users/gclyne/Downloads/lpr_000b21a_e/lpr_000b21a_e.shp')
-f = open('boreal_latitudes_longitudes.csv', 'w')
+shape_file = geopandas.read_file(f'{args.shape_file_path}',crs="epsg:4326")
+f = open(f'{args.output_file_path}', 'w')
 lons = open('grid_longitudes.csv','w')
 lats = open('grid_latitudes.csv','w')
 writer = csv.writer(f)
@@ -21,8 +27,7 @@ tree_cover_data['lon'] = tree_cover_data['lon'] - 360 if np.any(tree_cover_data[
 tree_cover_data = tree_cover_data['treeFrac']
 tree_cover_data.rio.set_spatial_dims(x_dim="lon", y_dim="lat", inplace=True)
 tree_cover_data.rio.write_crs("epsg:4326", inplace=True)
-clipped = tree_cover_data.rio.clip(shape_file.geometry.apply(mapping), shape_file.crs,drop=True)
-clipped = clipped.rio.clip(canada_shape_file.geometry.apply(mapping),canada_shape_file.crs,drop=True)
+clipped = tree_cover_data.rio.clip([shape_file.geometry.apply(mapping)[0]], shape_file.crs,drop=True) #geometry needs to be in a list, [0] index for geometry is managed land
 #select first time, doesnt matter which really
 clipped = clipped.isel(time=0)
 
