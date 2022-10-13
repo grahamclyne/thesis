@@ -23,9 +23,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--era_file_name',type=str)
     args = parser.parse_args()
-    managed_forest_coordinates = readCoordinates('managed_coordinates.csv')
-    ordered_latitudes = readCoordinates('managed_coordinates.csv')
-    ordered_longitudes = readCoordinates('managed_coordinates.csv')
+    managed_forest_coordinates = readCoordinates('managed_coordinates.csv',is_grid_file=False)
+    ordered_latitudes = readCoordinates('grid_latitudes.csv',is_grid_file=True)
+    ordered_longitudes = readCoordinates('grid_longitudes.csv',is_grid_file=True)
 
     year = date(1984,1,1).year
 

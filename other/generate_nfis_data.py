@@ -1,5 +1,5 @@
 import multiprocessing
-from other.utils import clipNFIS,countNFIS,getCoordinates,readCoordinates
+from utils import clipNFIS,countNFIS,getCoordinates,readCoordinates
 import csv 
 from datetime import date
 import rioxarray
@@ -12,8 +12,9 @@ def getRow(nfis_tif,year,lat,lon,next_lat,next_lon):
     observed_tree_cover = countNFIS(clipped_nfis,[210,220,230,81])
     observed_wetland = countNFIS(clipped_nfis,[80])
     observed_shrub_bryoid_herb = countNFIS(clipped_nfis,[100,50,40])
+    observed_bare = countNFIS(clipped_nfis,[32,33])
     #append year to row for timeseries potential,can drop this when doing testing - append lat lon for unique key (comibned w year)
-    row = [observed_tree_cover,observed_wetland,observed_shrub_bryoid_herb,year,lat,lon]
+    row = [observed_tree_cover,observed_wetland,observed_shrub_bryoid_herb,observed_bare,year,lat,lon]
     return row
 
 
@@ -21,15 +22,15 @@ def getRow(nfis_tif,year,lat,lon,next_lat,next_lon):
 if __name__ == '__main__':
     start_time = time.time()
 
-    managed_forest_coordinates = readCoordinates('managed_coordinates.csv')
-    ordered_latitudes = readCoordinates('managed_coordinates.csv')
-    ordered_longitudes = readCoordinates('managed_coordinates.csv')
+    managed_forest_coordinates = readCoordinates('managed_coordinates.csv',is_grid_file=False)
+    ordered_latitudes = readCoordinates('grid_latitudes.csv',is_grid_file=True)
+    ordered_longitudes = readCoordinates('grid_longitudes.csv',is_grid_file=True)
 
     year = date(1984,1,1).year
 
     observable_rows = open(f'{config.DATA_PATH}/nfis_tree_cover_data.csv','w')
     writer = csv.writer(observable_rows)
-    writer.writerow(['observed_tree_cover','observed_wetland','observed_shrub_bryoid_herb','year','lat','lon'])
+    writer.writerow(['observed_tree_cover','observed_wetland','observed_shrub_bryoid_herb','observed_bare','year','lat','lon'])
 
     for year in range(year,year+36,1):
         print(year)

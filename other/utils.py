@@ -13,12 +13,15 @@ import csv
 
 
 
-def readCoordinates(file_name) -> list:
+def readCoordinates(file_name,is_grid_file) -> list:
     coordinates = []
     with open(f'{config.DATA_PATH}/{file_name}', newline='') as csvfile:
         spamreader = csv.reader(csvfile, delimiter=',')
         for row in spamreader:
-            coordinates.append((float(row[0]),float(row[1])))
+            if(is_grid_file):
+                coordinates.append(float(row[0]))
+            else:
+                coordinates.append((float(row[0]),float(row[1])))
     return coordinates
 
 
@@ -52,6 +55,8 @@ def clipNFIS(nfis_tif,lat,lon,next_lat,next_lon) -> xr.DataArray:
 def getCoordinates(latlon:tuple,latitudes:list,longitudes:list):
     lat = latlon[0]
     lon = latlon[1]
+    print(lat,lon)
+    print(latitudes)
     next_lat = latitudes[latitudes.index(lat) + 1]
     next_lon = longitudes[longitudes.index(lon) + 1]
     return lat,lon,next_lat,next_lon

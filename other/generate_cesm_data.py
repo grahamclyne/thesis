@@ -8,7 +8,7 @@ import os
 def netcdfToNumpy(netcdf_file,variable,shape_file):
     netcdf_file['lon'] = netcdf_file['lon'] - 360 if np.any(netcdf_file['lon'] > 180) else netcdf_file['lon']
     netcdf_file = netcdf_file.groupby('time.year').mean()
-    netcdf_file = netcdf_file.sel(year=netcdf_file.year>=1949)
+    # netcdf_file = netcdf_file.sel(year=netcdf_file.year>=1949)
     netcdf_file = netcdf_file[variable]
     netcdf_file.rio.set_spatial_dims(x_dim="lon", y_dim="lat", inplace=True)
     netcdf_file.rio.write_crs("epsg:4326", inplace=True)
@@ -26,12 +26,20 @@ def combineNetCDFs(file_paths:list,shape_file:geopandas.GeoDataFrame) -> np.ndar
     years = []
     for file in file_paths:
         ds = xr.open_dataset(f'{config.CESM_PATH}/{file}',engine='netcdf4')
+        #need to check if file is split into two time ranges
         var = file.split('_')[0]
+        years = file.split('_')[0]
+        for file1 in file_paths:
+            if var in file1 and file1 != file:
+                other_ds = xr.open_dataset(f'{config.CESM_PATH}/{file1}',engine='netcdf4')
+                ds = xr.merge([ds,other_ds])
         arr = netcdfToNumpy(ds,var,shape_file)
         #get year for only one column, they will all be the same
         years = arr[:,1].reshape(-1,1)
         lat = arr[:,2].reshape(-1,1)
         lon = arr[:,3].reshape(-1,1)
+        print(arr)
+        print(out)
         if(len(out) == 0):
             out = arr[:,0].reshape(-1,1)
         else:

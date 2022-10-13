@@ -6,6 +6,8 @@ c = cdsapi.Client()
 # variable = 'leaf_area_index_high_vegetation'
 # variable ='leaf_area_index_low_vegetation'
 # variable = 'total_precipitation'
+# 'surface_pressure'
+# 'surface_net_solar_radiation'
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--variable',type=str)

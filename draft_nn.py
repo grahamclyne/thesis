@@ -5,27 +5,33 @@ import matplotlib.pyplot as plt
 from other import config
 from sklearn import preprocessing
 import time
-class CMIPDataset(T.utils.data.Dataset):
-    def __init__(self, data, transform=None):
-        self.data = data
+from pickle import dump
+from sklearn.metrics import mean_squared_error, r2_score
+from torchmetrics.functional import r2_score as R2Score
+import pandas as pd
 
+
+class CMIPDataset(T.utils.data.Dataset):
+    def __init__(self, data,num_of_inputs):
+        self.data = data
+        self.num_of_inputs = num_of_inputs
     def __len__(self):
         return len(self.data)
 
     def __getitem__(self, idx):
-        X = self.data[idx][:4]
-        y = self.data[idx][-8:-4]
+        X = self.data[idx][:self.num_of_inputs]
+        y = self.data[idx][-4:]
         return X,y
 
 
 class Net(T.nn.Module):
-  def __init__(self):
+  def __init__(self,num_of_inputs):
     super(Net, self).__init__()
-    self.hid1 = T.nn.Linear(4,10) 
-    self.hid2 = T.nn.Linear(10,20)
-    self.hid5 = T.nn.Linear(20,10)
+    self.hid1 = T.nn.Linear(num_of_inputs,20) 
+    self.hid2 = T.nn.Linear(20,30)
+    self.hid5 = T.nn.Linear(30,20)
     # self.drop1 = T.nn.Dropout(0.50) #example of dropout layer
-    self.oupt = T.nn.Linear(10, 4)
+    self.oupt = T.nn.Linear(20, 4)
 
   def forward(self, x):
     z = T.relu(self.hid1(x))
@@ -42,57 +48,43 @@ class Net(T.nn.Module):
 
 
 if __name__ == "__main__":
-    data = np.genfromtxt(f'{config.CESM_PATH}/cesm_data.csv',delimiter=',',skip_header=1)
+   
     
+    
+    #prepare and scale data
+    data = pd.read_csv(f'{config.DATA_PATH}/cesm_data.csv')
+    data['grass_crop_shrub'] = data['cropFrac'] + data['grassFrac'] + data['shrubFrac']
+    ds = data[data['years'] < 2012]
+    final_test = data[data['years'] >= 2012] 
+
     min_max_scaler = preprocessing.MinMaxScaler(feature_range=(0,1))
+    input_variables = ['pr','tas','# lai','treeFrac','baresoilFrac','rsds','ps','grass_shrub_crop']
+    input_variable_tuple = ('pr','tas','# lai','treeFrac','baresoilFrac','rsds','ps','grass_shrub_crop')
+    target_variables = ['cSoil','cCwd','cVeg','cLitter']
+    scaler = min_max_scaler.fit(ds.loc[:,input_variables])
+    ds.loc[:,input_variable_tuple] = scaler.transform(ds.loc[:,input_variable_tuple])
+    final_test.loc[:,input_variable_tuple] = scaler.transform(final_test.loc[:,input_variable_tuple])
+    ds = CMIPDataset(ds[input_variables + target_variables].to_numpy(),num_of_inputs=len(input_variables))
+    final_test = CMIPDataset(final_test[input_variables + target_variables].to_numpy(),num_of_inputs=len(input_variables))
 
-    ds = data[data[:,-3] < 2012]
-    final_test = data[data[:,-3] == 2012] 
-
-    scaler = min_max_scaler.fit(ds[:,[-4]])
-    ds[:,[-5]] = scaler.transform(ds[:,[-5]])
-    ds[:,[-6]] = scaler.transform(ds[:,[-6]])
-    ds[:,[-7]] = scaler.transform(ds[:,[-7]])
-    ds[:,[-8]] = scaler.transform(ds[:,[-8]])
-    ds[:,[-4]] = scaler.transform(ds[:,[-4]])
-    ds[:,[0]] = min_max_scaler.fit_transform(ds[:,[0]])
-    ds[:,[1]] = min_max_scaler.fit_transform(ds[:,[1]])
-    ds[:,[2]] = min_max_scaler.fit_transform(ds[:,[2]])
-    ds[:,[3]] = min_max_scaler.fit_transform(ds[:,[3]])
-
-    ds = np.concatenate((ds[:,:4],ds[:,-8:-4]),1)
-    print(ds)
-    scaler = min_max_scaler.fit(final_test[:,[-4]])
-    final_test[:,[-5]] = scaler.transform(final_test[:,[-5]])
-    final_test[:,[-6]] = scaler.transform(final_test[:,[-6]])
-    final_test[:,[-7]] = scaler.transform(final_test[:,[-7]])
-    final_test[:,[-8]] = scaler.transform(final_test[:,[-8]])
-    final_test[:,[-4]] = scaler.transform(final_test[:,[-4]])
-    final_test[:,[0]] = min_max_scaler.fit_transform(final_test[:,[0]])
-    final_test[:,[1]] = min_max_scaler.fit_transform(final_test[:,[1]])
-    final_test[:,[2]] = min_max_scaler.fit_transform(final_test[:,[2]])
-    final_test[:,[3]] = min_max_scaler.fit_transform(final_test[:,[3]])
-    final_test = np.concatenate((final_test[:,:4],final_test[:,-8:-4]),1)
-
-    ds = CMIPDataset(ds)
-    final_test = CMIPDataset(final_test)
-
-    # ds = T.utils.data.Subset(ds, list(range(0,10)))
+    #hyperparameters
+    num_of_epochs = 100
+    learning_rate = 0.0001
+    test_validation_batch_size = 100
+    #split train and validation
     train_set_size = int(len(ds) * 0.8)
     valid_set_size = len(ds) - train_set_size
     train,test = T.utils.data.random_split(ds, [train_set_size, valid_set_size], generator=T.Generator().manual_seed(0))
 
-    model = Net()
+    model = Net(len(input_variables))
     loss_function = nn.MSELoss()
-    learning_rate = 0.001
-    train_ldr = T.utils.data.DataLoader(train,batch_size=100,shuffle=True)
-    test_ldr = T.utils.data.DataLoader(test,batch_size=100,shuffle=True)
+    train_ldr = T.utils.data.DataLoader(train,batch_size=test_validation_batch_size,shuffle=True)
+    test_ldr = T.utils.data.DataLoader(test,batch_size=test_validation_batch_size,shuffle=True)
     final_ldr = T.utils.data.DataLoader(final_test,batch_size=1,shuffle=False)
     optimizer = T.optim.Adam(model.parameters(), lr=learning_rate)
     losses = []
-    print(model.parameters())
     min_valid_loss = np.inf
-    for epoch in range(100):
+    for epoch in range(num_of_epochs):
         start_time = time.time()
         train_loss = 0
         model.train()
@@ -124,16 +116,23 @@ if __name__ == "__main__":
     final_loss = 0
     total = 0
     pred_total = 0
+    y_pred_list = []
+    y_target = []
+    model.eval()
     for X,y in final_ldr:
-        # print(X.data.numpy(),y.data.numpy())
         final_pred = model(X.float())
         loss = loss_function(final_pred,y.float())
         final_loss += loss.item() * X.size(0)
         total = total + y.float()
         pred_total += final_pred
-        # print('prediction:',final_pred.data.numpy())
+        y_pred_list.append(final_pred.detach().numpy()[0])
+        y_target.append(y.detach().numpy()[0])
+    print(f'mse: {mean_squared_error(y_pred_list,y_target)}')
+    print(f'total r2 score {r2_score(y_target,y_pred_list)}')
+    print(f'individual r2 {R2Score(T.tensor(np.array(y_pred_list)),T.tensor(np.array(y_target)),multioutput="raw_values")}')
     print(final_loss,total,pred_total)
     T.save(model.state_dict(), '/Users/gclyne/thesis/data/trained_net')
+    dump(scaler, open('/Users/gclyne/thesis/data/scaler.pkl', 'wb'))
     # print(final_loss)
     # plt.plot(losses)
     # plt.ylabel('loss')
