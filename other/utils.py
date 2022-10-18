@@ -8,7 +8,7 @@ import geopandas as gpd
 from shapely.ops import transform
 import pyproj
 import numpy as np
-import config
+import config as config
 import csv 
 
 
@@ -41,7 +41,7 @@ def clipNFIS(nfis_tif,lat,lon,next_lat,next_lon) -> xr.DataArray:
         y=(nfis_tif.y >= y_min) & (nfis_tif.y < y_max),
         band=0
         )
-    poly = Polygon([[lon,lat],[next_lon,lat],[next_lon,next_lat],[lon,next_lat],[lon,lat]])
+    poly = Polygon([[lon,lat],[next_lon,lat],[next_lon,next_lat],[lon,next_lat]])
     wgs84 = pyproj.CRS('EPSG:4326')
     out = pyproj.CRS('EPSG:3978')
     project = pyproj.Transformer.from_crs(wgs84, out, always_xy=True).transform
@@ -55,8 +55,6 @@ def clipNFIS(nfis_tif,lat,lon,next_lat,next_lon) -> xr.DataArray:
 def getCoordinates(latlon:tuple,latitudes:list,longitudes:list):
     lat = latlon[0]
     lon = latlon[1]
-    print(lat,lon)
-    print(latitudes)
     next_lat = latitudes[latitudes.index(lat) + 1]
     next_lon = longitudes[longitudes.index(lon) + 1]
     return lat,lon,next_lat,next_lon
@@ -90,9 +88,10 @@ def eraYearlyAverage(era,lat,lon,next_lat,next_lon,year):
 
 def getArea(lat,lon,next_lat,next_lon) -> float:
     #returns metre squared
-    poly = Polygon([(lon,lat),(next_lon,lat),(lon,next_lat),(next_lat,next_lon),(lon,lat)])
+    poly = Polygon([(lon,next_lat),(lon,lat),(next_lon,lat),(next_lon,next_lat)])
     #put in counterclockwise rotation otherwise does not work
     geod = Geod(ellps="WGS84") #assume ellipsoid here
     #abs value, could be negative depending on orientation?
-    area = abs(geod.geometry_area_perimeter(poly)[0])
-    return area
+    area = geod.geometry_area_perimeter(poly)
+    # print(area)
+    return area[0]

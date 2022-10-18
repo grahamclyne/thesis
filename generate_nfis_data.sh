@@ -16,3 +16,4 @@ source ~/ENV/bin/activate
 
 
 python ${PROJECT_PATH}/other/generate_nfis_data.py
+python ${PROJECT_PATH}/other/generate_harvest_data.py

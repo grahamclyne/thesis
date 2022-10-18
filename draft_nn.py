@@ -58,8 +58,8 @@ if __name__ == "__main__":
     final_test = data[data['years'] >= 2012] 
 
     min_max_scaler = preprocessing.MinMaxScaler(feature_range=(0,1))
-    input_variables = ['pr','tas','# lai','treeFrac','baresoilFrac','rsds','ps','grass_shrub_crop']
-    input_variable_tuple = ('pr','tas','# lai','treeFrac','baresoilFrac','rsds','ps','grass_shrub_crop')
+    input_variables = ['pr','tas','# lai','treeFrac','baresoilFrac','ps','grass_crop_shrub']
+    input_variable_tuple = ('pr','tas','# lai','treeFrac','baresoilFrac','ps','grass_crop_shrub')
     target_variables = ['cSoil','cCwd','cVeg','cLitter']
     scaler = min_max_scaler.fit(ds.loc[:,input_variables])
     ds.loc[:,input_variable_tuple] = scaler.transform(ds.loc[:,input_variable_tuple])

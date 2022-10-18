@@ -30,6 +30,7 @@ tree_cover_data.rio.write_crs("epsg:4326", inplace=True)
 clipped = tree_cover_data.rio.clip([shape_file.geometry.apply(mapping)[0]], shape_file.crs,drop=True) #geometry needs to be in a list, [0] index for geometry is managed land
 #select first time, doesnt matter which really
 clipped = clipped.isel(time=0)
+clipped.to_netcdf('output_clipped_image.nc')
 
 #generate csv of total lats and lons
 for lon in tree_cover_data.lon:
@@ -38,7 +39,7 @@ for lat in tree_cover_data.lat:
     lat_writer.writerow([lat.values])
 
 
-#find non-null values, these are the boundaries for the boreal forest
+#find non-null values, these are the boundaries for the forest
 for lat in clipped['lat']:
     for lon in clipped['lon']:
         # print(lat.values)
