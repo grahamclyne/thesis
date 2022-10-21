@@ -55,6 +55,10 @@ def clipNFIS(nfis_tif,lat,lon,next_lat,next_lon) -> xr.DataArray:
 def getCoordinates(latlon:tuple,latitudes:list,longitudes:list):
     lat = latlon[0]
     lon = latlon[1]
+    latitudes = list(map(lambda x:round(x,7),latitudes))
+    longitudes = list(map(lambda x:round(x,7),longitudes))
+    lat = round(lat,7)
+    lon = round(lon,7)
     next_lat = latitudes[latitudes.index(lat) + 1]
     next_lon = longitudes[longitudes.index(lon) + 1]
     return lat,lon,next_lat,next_lon
@@ -69,10 +73,11 @@ def getCoordinates(latlon:tuple,latitudes:list,longitudes:list):
 
 def countNFIS(nfis_tif:xr.Dataset,land_cover_classes:list) -> float:
     tree_coverage = nfis_tif.where(np.isin(nfis_tif.data,land_cover_classes)) #should forested wetland, 81, be included? 
+    cropped_leftovers = nfis_tif.where(np.isin(nfis_tif.data,[0])).groupby('x').count('y').sum() 
     tree_coverage = tree_coverage.groupby('x')
     tree_coverage = tree_coverage.count('y')
     tree_coverage = tree_coverage.sum()
-    return tree_coverage.values / nfis_tif.size * 100
+    return tree_coverage.values / (nfis_tif.size - cropped_leftovers.data) * 100
 
 
 def eraYearlyAverage(era,lat,lon,next_lat,next_lon,year):

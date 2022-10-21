@@ -137,17 +137,17 @@ def evaluate(model: T.nn.Module, eval_data: T.Tensor) -> float:
     return total_loss / (len(eval_data) - 1)
 
 if __name__ == "__main__":
-    ntokens = 8  # size of vocabulary
-    emsize = 200  # embedding dimension
+    # ntokens = 8  # size of vocabulary
+    emsize = 8  # embedding dimension
     d_hid = 200  # dimension of the feedforward network model in nn.TransformerEncoder
     nlayers = 2  # number of nn.TransformerEncoderLayer in nn.TransformerEncoder
     nhead = 2  # number of heads in nn.MultiheadAttention
     dropout = 0.2  # dropout probability
-    model = TransformerModel(ntokens,emsize,nhead,d_hid,nlayers,dropout)
+    model = TransformerModel(emsize,nhead,d_hid,nlayers,dropout)
     #use https://en.wikipedia.org/wiki/Perplexity to evaluate? 
 
 
-
+    
     criterion = T.nn.CrossEntropyLoss()
     lr = 5.0  # learning rate
     optimizer = T.optim.SGD(model.parameters(), lr=lr)

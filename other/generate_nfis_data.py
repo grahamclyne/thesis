@@ -9,12 +9,15 @@ import time
 def getRow(nfis_tif,year,lat,lon,next_lat,next_lon):
     print(lat,lon,multiprocessing.current_process())
     clipped_nfis = clipNFIS(nfis_tif,lat,lon,next_lat,next_lon)
+    clipped_nfis.rio.to_raster('test.tiff')
     observed_tree_cover = countNFIS(clipped_nfis,[210,220,230,81])
     observed_wetland = countNFIS(clipped_nfis,[80])
     observed_shrub_bryoid_herb = countNFIS(clipped_nfis,[100,50,40])
     observed_bare = countNFIS(clipped_nfis,[32,33])
+    observed_no_change = countNFIS(clipped_nfis,[0])
+    observed_water_snow_ice = countNFIS(clipped_nfis,[20,31])
     #append year to row for timeseries potential,can drop this when doing testing - append lat lon for unique key (comibned w year)
-    row = [observed_tree_cover,observed_wetland,observed_shrub_bryoid_herb,observed_bare,year,lat,lon]
+    row = [observed_tree_cover,observed_wetland,observed_shrub_bryoid_herb,observed_bare,observed_water_snow_ice,observed_no_change,year,lat,lon]
     return row
 
 
@@ -30,7 +33,7 @@ if __name__ == '__main__':
 
     observable_rows = open(f'{config.DATA_PATH}/nfis_tree_cover_data.csv','w')
     writer = csv.writer(observable_rows)
-    writer.writerow(['observed_tree_cover','observed_wetland','observed_shrub_bryoid_herb','observed_bare','year','lat','lon'])
+    writer.writerow(['observed_tree_cover','observed_wetland','observed_shrub_bryoid_herb','observed_bare','observed_water_snow_ice','observed_no_change','year','lat','lon'])
 
     for year in range(year,year+36,1):
         print(year)
