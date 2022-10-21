@@ -6,18 +6,30 @@ import rioxarray
 import config
 import time
 
+
 def getRow(nfis_tif,year,lat,lon,next_lat,next_lon):
-    print(lat,lon,multiprocessing.current_process())
+    """
+    0 = no change
+    20 = water
+    31 = snow_ice
+    32 = rock_rubble
+    33 = exposed_barren_land
+    40 = bryoids
+    50 = shrubs
+    80 = wetland
+    81 = wetland-treed
+    100 = herbs
+    210 = coniferous
+    220 = broadleaf
+    230 = mixedwood
+    """
+    classes = [0,20,31,32,33,40,50,80,81,100,210,220,230]
+    observed_output = []
     clipped_nfis = clipNFIS(nfis_tif,lat,lon,next_lat,next_lon)
-    clipped_nfis.rio.to_raster('test.tiff')
-    observed_tree_cover = countNFIS(clipped_nfis,[210,220,230,81])
-    observed_wetland = countNFIS(clipped_nfis,[80])
-    observed_shrub_bryoid_herb = countNFIS(clipped_nfis,[100,50,40])
-    observed_bare = countNFIS(clipped_nfis,[32,33])
-    observed_no_change = countNFIS(clipped_nfis,[0])
-    observed_water_snow_ice = countNFIS(clipped_nfis,[20,31])
+    for i in classes:
+        observed_output.append(countNFIS(clipped_nfis,[i]))
     #append year to row for timeseries potential,can drop this when doing testing - append lat lon for unique key (comibned w year)
-    row = [observed_tree_cover,observed_wetland,observed_shrub_bryoid_herb,observed_bare,observed_water_snow_ice,observed_no_change,year,lat,lon]
+    row = [*observed_output,year,lat,lon]
     return row
 
 
@@ -33,7 +45,8 @@ if __name__ == '__main__':
 
     observable_rows = open(f'{config.DATA_PATH}/nfis_tree_cover_data.csv','w')
     writer = csv.writer(observable_rows)
-    writer.writerow(['observed_tree_cover','observed_wetland','observed_shrub_bryoid_herb','observed_bare','observed_water_snow_ice','observed_no_change','year','lat','lon'])
+    writer.writerow(['no_change','water','snow_ice','rock_rubble','exposed_barren_land','bryoids','shrubs','wetland',
+    'wetland-treed','herbs','coniferous','broadleaf','mixedwood','year','lat','lon'])
 
     for year in range(year,year+36,1):
         print(year)
