@@ -5,7 +5,7 @@ from datetime import date
 import rioxarray
 import config
 import time
-
+import numpy as np
 
 def getRow(nfis_tif,year,lat,lon,next_lat,next_lon):
     """
@@ -23,13 +23,16 @@ def getRow(nfis_tif,year,lat,lon,next_lat,next_lon):
     220 = broadleaf
     230 = mixedwood
     """
-    classes = [0,20,31,32,33,40,50,80,81,100,210,220,230]
-    observed_output = []
     clipped_nfis = clipNFIS(nfis_tif,lat,lon,next_lat,next_lon)
-    for i in classes:
-        observed_output.append(countNFIS(clipped_nfis,[i]))
+    x = np.unique(clipped_nfis.data,return_counts=True)
+
+    classes = [0,20,31,32,33,40,50,80,81,100,210,220,230]
+    output_dict = {el:0 for el in classes}
+    for index in range(len(x[0])):
+        output_dict[x[0][index]] = x[1][index]
     #append year to row for timeseries potential,can drop this when doing testing - append lat lon for unique key (comibned w year)
-    row = [*observed_output,year,lat,lon]
+    row = [*list(output_dict.values()),clipped_nfis.data.size,year,lat,lon]
+    print(row)
     return row
 
 
@@ -46,7 +49,7 @@ if __name__ == '__main__':
     observable_rows = open(f'{config.DATA_PATH}/nfis_tree_cover_data.csv','w')
     writer = csv.writer(observable_rows)
     writer.writerow(['no_change','water','snow_ice','rock_rubble','exposed_barren_land','bryoids','shrubs','wetland',
-    'wetland-treed','herbs','coniferous','broadleaf','mixedwood','year','lat','lon'])
+    'wetland-treed','herbs','coniferous','broadleaf','mixedwood','total_pixels','year','lat','lon'])
 
     for year in range(year,year+36,1):
         print(year)
