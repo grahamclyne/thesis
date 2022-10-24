@@ -5,13 +5,20 @@ from datetime import date
 import rioxarray
 import config
 import time
+import numpy as np 
 
-def getRow(nfis_tif,year,lat,lon,next_lat,next_lon):
-    print(lat,lon,multiprocessing.current_process())
+def getRow(nfis_tif,year,lat,lon,next_lat,next_lon) -> list:
+
     clipped_nfis = clipNFIS(nfis_tif,lat,lon,next_lat,next_lon)
-    observed_tree_cover = countNFIS(clipped_nfis,[year - 1900])
+    x = np.unique(clipped_nfis.data,return_counts=True)
+
+    classes = [0] + [x for x in range(85,116,1)]
+    output_dict = {el:0 for el in classes}
+    for index in range(len(x[0])):
+        output_dict[x[0][index]] = x[1][index]
     #append year to row for timeseries potential,can drop this when doing testing - append lat lon for unique key (comibned w year)
-    row = [observed_tree_cover,year,lat,lon]
+    row = [*list(output_dict.values()),clipped_nfis.data.size,year,lat,lon]
+    print(row)
     return row
 
 
@@ -27,7 +34,7 @@ if __name__ == '__main__':
 
     observable_rows = open(f'{config.DATA_PATH}/nfis_harvest_data.csv','w')
     writer = csv.writer(observable_rows)
-    writer.writerow(['harvested_percentage','year','lat','lon'])
+    # writer.writerow(['harvested_percentage','year','lat','lon'])
 
     for year in range(year,year+31,1):
         print(year)

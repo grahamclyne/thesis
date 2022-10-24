@@ -54,12 +54,13 @@ if __name__ == "__main__":
     #prepare and scale data
     data = pd.read_csv(f'{config.DATA_PATH}/cesm_data.csv')
     data['grass_crop_shrub'] = data['cropFrac'] + data['grassFrac'] + data['shrubFrac']
+    data['exposed_land'] = data['residualFrac'] + data['baresoilFrac']
     ds = data[data['years'] < 2012]
     final_test = data[data['years'] >= 2012] 
 
     min_max_scaler = preprocessing.MinMaxScaler(feature_range=(0,1))
-    input_variables = ['pr','tas','# lai','treeFrac','baresoilFrac','ps','grass_crop_shrub']
-    input_variable_tuple = ('pr','tas','# lai','treeFrac','baresoilFrac','ps','grass_crop_shrub')
+    input_variables = ['pr','tas','# lai','treeFrac','exposed_land','ps','grass_crop_shrub']
+    input_variable_tuple = ('pr','tas','# lai','treeFrac','exposed_land','ps','grass_crop_shrub')
     target_variables = ['cSoil','cCwd','cVeg','cLitter']
     scaler = min_max_scaler.fit(ds.loc[:,input_variables])
     ds.loc[:,input_variable_tuple] = scaler.transform(ds.loc[:,input_variable_tuple])
@@ -68,8 +69,8 @@ if __name__ == "__main__":
     final_test = CMIPDataset(final_test[input_variables + target_variables].to_numpy(),num_of_inputs=len(input_variables))
 
     #hyperparameters
-    num_of_epochs = 100
-    learning_rate = 0.0001
+    num_of_epochs = 300
+    learning_rate = 0.0005
     test_validation_batch_size = 100
     #split train and validation
     train_set_size = int(len(ds) * 0.8)
