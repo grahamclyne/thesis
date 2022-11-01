@@ -5,8 +5,10 @@ from shapely.geometry import mapping
 import geopandas
 import numpy as np
 import os
+
+from other.utils import scaleLongitudes
 def netcdfToNumpy(netcdf_file,variable,shape_file):
-    netcdf_file['lon'] = netcdf_file['lon'] - 360 if np.any(netcdf_file['lon'] > 180) else netcdf_file['lon']
+    netcdf_file['lon'] = scaleLongitudes(netcdf_file['lon'])
     netcdf_file = netcdf_file.groupby('time.year').mean()
     # netcdf_file = netcdf_file.sel(year=netcdf_file.year>=1949)
     netcdf_file = netcdf_file[variable]

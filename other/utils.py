@@ -1,19 +1,13 @@
 import xarray as xr
-from pyproj import Transformer
-import rioxarray
-from shapely.geometry import Polygon
-from pyproj import Geod
-from shapely.geometry import mapping 
+from pyproj import Transformer,CRS,Geod
+from shapely.geometry import Polygon,mapping
 import geopandas as gpd
 from shapely.ops import transform
-import pyproj
 import numpy as np
-import config as config
+import other.config as config
 import csv 
 
-
-
-def readCoordinates(file_name,is_grid_file) -> list:
+def readCoordinates(file_name:str,is_grid_file:bool) -> list:
     coordinates = []
     with open(f'{config.DATA_PATH}/{file_name}', newline='') as csvfile:
         spamreader = csv.reader(csvfile, delimiter=',')
@@ -24,13 +18,13 @@ def readCoordinates(file_name,is_grid_file) -> list:
                 coordinates.append((float(row[0]),float(row[1])))
     return coordinates
 
-
-def clipNFIS(nfis_tif,lat,lon,next_lat,next_lon) -> xr.DataArray:
+def clipNFIS(nfis_tif:xr.Dataset,lat:float,lon:float,next_lat:float,next_lon:float) -> xr.DataArray:
         #this is a hack because need to get conical coordinates (at least smaller size) before clipping shapefile, otherwise takes too long
 
     transformer =Transformer.from_crs('epsg:4326','epsg:3978')
     x1,y1 = transformer.transform(lat,lon)
     x2,y2 = transformer.transform(next_lat,next_lon)
+    #extra area to ensure clipping does not clip data we need
     bounds = 50000
     x_min = np.amax([nfis_tif['x'].min(),x1-bounds])
     x_max = np.amin([nfis_tif['x'].max(),x2+bounds])
@@ -42,15 +36,15 @@ def clipNFIS(nfis_tif,lat,lon,next_lat,next_lon) -> xr.DataArray:
         band=0
         )
     poly = Polygon([[lon,lat],[next_lon,lat],[next_lon,next_lat],[lon,next_lat]])
-    wgs84 = pyproj.CRS('EPSG:4326')
-    out = pyproj.CRS('EPSG:3978')
-    project = pyproj.Transformer.from_crs(wgs84, out, always_xy=True).transform
+    wgs84 = CRS('EPSG:4326')
+    out = CRS('EPSG:3978')
+    project = Transformer.from_crs(wgs84, out, always_xy=True).transform
     poly_proj = transform(project, poly)
     projected_poly = gpd.GeoDataFrame(index=[0], crs='epsg:3978', geometry=[poly_proj])
     sl.rio.write_crs("epsg:3978", inplace=True)
     clipped = sl.rio.clip(projected_poly.geometry.apply(mapping), projected_poly.crs,drop=True)
+    #this leaves zeroes still in, need to compensate for this later by counting the zeroes
     return clipped
-
 
 def getCoordinates(latlon:tuple,latitudes:list,longitudes:list):
     lat = latlon[0]
@@ -63,34 +57,6 @@ def getCoordinates(latlon:tuple,latitudes:list,longitudes:list):
     next_lon = longitudes[longitudes.index(lon) + 1]
     return lat,lon,next_lat,next_lon
 
-
-
-
-
-
-
-
-
-def countNFIS(nfis_tif:xr.Dataset,land_cover_classes:list) -> float:
-    tree_coverage = nfis_tif.where(np.isin(nfis_tif.data,land_cover_classes)) #should forested wetland, 81, be included? 
-    cropped_leftovers = nfis_tif.where(np.isin(nfis_tif.data,[0])).groupby('x').count('y').sum() 
-    tree_coverage = tree_coverage.groupby('x')
-    tree_coverage = tree_coverage.count('y')
-    tree_coverage = tree_coverage.sum()
-    return tree_coverage.values / (nfis_tif.size - cropped_leftovers.data) * 100
-
-
-def eraYearlyAverage(era,lat,lon,next_lat,next_lon,year):
-    era = era.groupby('time.year').mean()
-    era = era.isel(
-    year=year - era.year.min().values.item(), #this only works if first year of data is 1984
-    latitude=np.logical_and(era.latitude >= lat,era.latitude <= next_lat), 
-    longitude=np.logical_and(era.longitude >= lon, era.longitude <= next_lon)
-    )
-    return (era.sum() / (len(era.latitude) * len(era.longitude)))[list(era.keys())[0]].values.item()
-
-
-
 def getArea(lat,lon,next_lat,next_lon) -> float:
     #returns metre squared
     poly = Polygon([(lon,next_lat),(lon,lat),(next_lon,lat),(next_lon,next_lat)])
@@ -100,3 +66,6 @@ def getArea(lat,lon,next_lat,next_lon) -> float:
     area = geod.geometry_area_perimeter(poly)
     # print(area)
     return area[0]
+
+def scaleLongitudes(longitudes):
+    return np.where(longitudes > 180,longitudes - 360, longitudes) 

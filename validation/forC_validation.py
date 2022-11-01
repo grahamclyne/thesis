@@ -49,7 +49,6 @@ site_subset = sites[['sites.sitename','lat','lon']]
 numpy_sites = site_subset.to_numpy()
 
 #get grid cell matches
-grid_lat_lon_coordinates = []
 for row in numpy_sites: 
     matches.append(findCoordinateMatch(row,boreal_coordinates))
 

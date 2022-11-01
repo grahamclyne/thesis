@@ -7,12 +7,14 @@ from pyproj import Transformer, CRS
 import matplotlib.pyplot as plt
 from mpl_toolkits.basemap import Basemap
 
+from other.utils import scaleLongitudes
+
 
 nfis_tif = rioxarray.open_rasterio('/Users/gclyne/Downloads/CA_forest_VLCE2_1984/CA_forest_VLCE2_1984.tif',decode_coords='all')
 tree_cover_data = xarray.open_dataset('/Users/gclyne/thesis/data/treeFrac_Lmon_CESM2_land-hist_r1i1p1f1_gn_194901-201512.nc')
 shape_file = geopandas.read_file('/Users/gclyne/thesis/data/NABoreal.shp',crs="epsg:4326")
 
-tree_cover_data['lon'] = tree_cover_data['lon'] - 360 if np.any(tree_cover_data['lon'] > 180) else tree_cover_data['lon']
+tree_cover_data['lon'] = scaleLongitudes(tree_cover_data['lon'])
 tree_cover_data = tree_cover_data['treeFrac']
 tree_cover_data.rio.set_spatial_dims(x_dim="lon", y_dim="lat", inplace=True)
 tree_cover_data.rio.write_crs("epsg:4326", inplace=True)

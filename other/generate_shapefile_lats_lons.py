@@ -1,12 +1,11 @@
-from ast import arg
-import rioxarray
-import numpy as np
 import geopandas
 from shapely.geometry import mapping 
 import xarray as xr
 import csv
 import config
-import argparse 
+import argparse
+
+from other.utils import scaleLongitudes 
 
 #this could be any CESM CMIP6 file 
 parser = argparse.ArgumentParser()
@@ -22,8 +21,7 @@ lats = open('grid_latitudes.csv','w')
 writer = csv.writer(f)
 lon_writer = csv.writer(lons)
 lat_writer = csv.writer(lats)
-# canada_shape_file = canada_shape_file.to_crs('epsg:4326')
-tree_cover_data['lon'] = tree_cover_data['lon'] - 360 if np.any(tree_cover_data['lon'] > 180) else tree_cover_data['lon']
+tree_cover_data['lon'] = scaleLongitudes(tree_cover_data['lon']
 tree_cover_data = tree_cover_data['treeFrac']
 tree_cover_data.rio.set_spatial_dims(x_dim="lon", y_dim="lat", inplace=True)
 tree_cover_data.rio.write_crs("epsg:4326", inplace=True)

@@ -16,7 +16,7 @@ for file in files:
     data_frames.append(temp_df)
 # data_frames = [temp,precip,nfis_tree_cover,surface_pressure,solar_radiation,high_lai,low_lai]
 df_merged = reduce(lambda  left,right: pd.merge(left,right,on=['year','lat','lon'],
-                                            how='outer'), data_frames)
+                                            how='inner'), data_frames)
 
 df_merged['total_lai'] = df_merged['leaf_area_index_low_vegetation.nc'] + df_merged['leaf_area_index_high_vegetation.nc']
 #('pr','tas','# lai','treeFrac','baresoilFrac','ps','grass_crop_shrub')

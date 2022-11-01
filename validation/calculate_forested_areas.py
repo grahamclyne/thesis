@@ -2,9 +2,10 @@
 # size that gridded cells give 4335325524787.99
 #gridded gives  71294767732.00977 less that actual, approx 1.61% less area
 4335325524787.99 * .58 / 10000
-
+from plotly import graph_objects as go
+import pandas as pd
 #how much forested land does cesm say? does nfis say? 
-from utils import getArea,getCoordinates,readCoordinates
+from utils import readCoordinates
 cesm_data = pd.read_csv('/Users/gclyne/thesis/data/cesm_data.csv')
 ordered_latitudes = readCoordinates('grid_latitudes.csv',is_grid_file=True)
 ordered_longitudes = readCoordinates('grid_longitudes.csv',is_grid_file=True)
@@ -36,7 +37,7 @@ tree_frac_cesm_totals
 
 
 fig = go.Figure()
-reported = [54000 for s in years]
+reported = [54000 for _ in years]
 fig.add_trace(go.Scatter(x=years, y=tree_frac_cesm_totals,
                     mode='markers',
                     name='cesm grass coverage,'
