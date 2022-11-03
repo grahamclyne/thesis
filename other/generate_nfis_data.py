@@ -12,21 +12,6 @@ class NFIS_Land_Cover():
     
     
     def getRow(self,nfis_tif,year,lat,lon,next_lat,next_lon) -> list:
-        """
-        0 = no change
-        20 = water
-        31 = snow_ice
-        32 = rock_rubble
-        33 = exposed_barren_land
-        40 = bryoids
-        50 = shrubs
-        80 = wetland
-        81 = wetland-treed
-        100 = herbs
-        210 = coniferous
-        220 = broadleaf
-        230 = mixedwood
-        """
         clipped_nfis = clipNFIS(nfis_tif,lat,lon,next_lat,next_lon)
         x = np.unique(clipped_nfis.data,return_counts=True)
 

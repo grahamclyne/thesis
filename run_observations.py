@@ -4,7 +4,7 @@ from functools import reduce
 import os 
 from pickle import load
 import torch as T
-from draft_nn import Net,CMIPDataset
+from model import Net,CMIPDataset
 
 os.chdir(f'{config.DATA_PATH}/generated_observable_data')
 files = os.listdir()

@@ -1,5 +1,5 @@
 import multiprocessing
-from utils import clipNFIS,getCoordinates
+from other.utils import clipNFIS,getCoordinates
 import other.config as config
 import multiprocessing
 import rioxarray
@@ -8,6 +8,10 @@ class NFIS_Biomass():
     def __init__(self):
         self.columns =  ['agb','lat','lon']
         self.output_file_path = f'{config.DATA_PATH}/nfis_agb.csv'
+    
+    # @property
+    # def output_file_path(self):
+    #     return self._output_file_path
     
     def getRow(nfis_tif,lat,lon,next_lat,next_lon):
         print(lat,lon,multiprocessing.current_process())

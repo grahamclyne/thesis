@@ -8,5 +8,3 @@ DATA_PATH = os.getenv('PROJECT_PATH') + '/data'
 FORC_PATH = os.getenv('PROJECT_PATH') + '/data/FORC'
 OUTPUT_PATH = DATA_PATH + '/output'
 GENERATED_DATA = DATA_PATH + '/generated_data'
-
-TARGET_VARIABLES = ['cSoil','cCwd','cVeg','cLitter']

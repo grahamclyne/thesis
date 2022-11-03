@@ -1,7 +1,7 @@
 import time
 import csv
 from argparse import ArgumentParser
-from other.generate_nfis_biomass_sums import NFIS_Biomass
+from other.generate_nfis_biomass import NFIS_Biomass
 from other.generate_nfis_data import NFIS_Land_Cover
 from other.generate_era_data import ERA_Dataset
 from other.utils import readCoordinates
@@ -18,10 +18,9 @@ if __name__ == '__main__':
     parser.add_argument('--data_set', type=str)
     args = parser.parse_args()
     if(args.data_set == 'nfis_biomass'):
-        data_set = NFIS_Biomass
-    # data_set = NFIS_Land_Cover()    
+        data_set = NFIS_Biomass()
+    # data_set = NFIS_Land_Cover()
     # data_set = ERA_Dataset()
-
 
     observable_rows = open(data_set.output_file_path,'w')
     writer = csv.writer(observable_rows)

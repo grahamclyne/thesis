@@ -9,11 +9,11 @@ import numpy as np
 class ObservableDataset():
     def __init__(self,columns,output_file_path,getRow,generate):
         self.columns =  columns
-        self.output_file_path = 
+        self.output_file_path = output_file_path
         self.getRow = getRow
         self.generate = generate
 
-def getRow(self,nfis_tif:rioxarray.Dataset,lat:float,lon:float,next_lat:float,next_lon:float) -> list:
+def getRow(nfis_tif:rioxarray.Dataset,lat:float,lon:float,next_lat:float,next_lon:float) -> list:
         clipped_nfis = clipNFIS(nfis_tif,lat,lon,next_lat,next_lon)
         x = np.unique(clipped_nfis.data,return_counts=True)
         classes = [0] + [x for x in range(85,116,1)]
@@ -24,7 +24,7 @@ def getRow(self,nfis_tif:rioxarray.Dataset,lat:float,lon:float,next_lat:float,ne
         print(row)
         return row
 
-def generate(self,coordinates:list,ordered_latitudes:list,ordered_longitudes:list,writer:csv.writer,num_cores:int) -> None:
+def generate(coordinates:list,ordered_latitudes:list,ordered_longitudes:list,writer:csv.writer,num_cores:int) -> None:
     nfis_tif = rioxarray.open_rasterio(f'{config.NFIS_PATH}/CA_harvest_year_1985_2015.tif',decode_coords='all',lock=False)
     x = iter(coordinates)
     # p = multiprocessing.Pool(num_cores)
@@ -32,7 +32,7 @@ def generate(self,coordinates:list,ordered_latitudes:list,ordered_longitudes:lis
     for i in range(int(len(coordinates))):
         lat,lon,next_lat,next_lon = getCoordinates(next(x),ordered_latitudes,ordered_longitudes)
         #beware, failed child processes do not give error by default
-        writer.writerow(self.getRow(nfis_tif,lat,lon,next_lat,next_lon))
+        writer.writerow(getRow(nfis_tif,lat,lon,next_lat,next_lon))
         # p.apply_async(getRow,[nfis_tif,year,lat,lon,next_lat,next_lon],callback = writer.writerow)
         # p.close()
         # p.join()

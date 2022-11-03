@@ -2,10 +2,12 @@ import geopandas
 from shapely.geometry import mapping 
 import xarray as xr
 import csv
-import config
+import other.config as config
 import argparse
-
+import numpy as np
 from other.utils import scaleLongitudes 
+
+#to run: python -m other.generate_shapefile_lats_lons --shape_file_path /Users/gclyne/thesis/data/shapefiles/NIR2016_MF.shp --output_file_path /Users/gclyne/thesis/data/managed_real_output.csv
 
 #this could be any CESM CMIP6 file 
 parser = argparse.ArgumentParser()
@@ -16,19 +18,16 @@ tree_cover_data = xr.open_dataset(f'{config.CESM_PATH}/treeFrac_Lmon_CESM2_land-
 
 shape_file = geopandas.read_file(f'{args.shape_file_path}',crs="epsg:4326")
 f = open(f'{args.output_file_path}', 'w')
-lons = open('grid_longitudes.csv','w')
-lats = open('grid_latitudes.csv','w')
+lons = open(f'{config.DATA_PATH}/grid_longitudes.csv','w')
+lats = open(f'{config.DATA_PATH}/grid_latitudes.csv','w')
 writer = csv.writer(f)
 lon_writer = csv.writer(lons)
 lat_writer = csv.writer(lats)
-tree_cover_data['lon'] = scaleLongitudes(tree_cover_data['lon']
-tree_cover_data = tree_cover_data['treeFrac']
+tree_cover_data = scaleLongitudes(tree_cover_data,'lon')
+tree_cover_data = tree_cover_data['treeFrac'].isel(time=0)
 tree_cover_data.rio.set_spatial_dims(x_dim="lon", y_dim="lat", inplace=True)
 tree_cover_data.rio.write_crs("epsg:4326", inplace=True)
 clipped = tree_cover_data.rio.clip([shape_file.geometry.apply(mapping)[0]], shape_file.crs,drop=True) #geometry needs to be in a list, [0] index for geometry is managed land
-#select first time, doesnt matter which really
-clipped = clipped.isel(time=0)
-clipped.to_netcdf('output_clipped_image.nc')
 
 #generate csv of total lats and lons
 for lon in tree_cover_data.lon:

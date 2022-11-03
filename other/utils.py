@@ -67,5 +67,8 @@ def getArea(lat,lon,next_lat,next_lon) -> float:
     # print(area)
     return area[0]
 
-def scaleLongitudes(longitudes):
-    return np.where(longitudes > 180,longitudes - 360, longitudes) 
+#convert 0-360 to 180 lons, and resort 
+def scaleLongitudes(dataset:xr.Dataset,lon_variable:str) -> xr.Dataset:
+    dataset[lon_variable] = np.where(dataset[lon_variable]> 180,dataset[lon_variable] - 360, dataset[lon_variable]) 
+    return dataset.sortby(dataset.lon)
+    

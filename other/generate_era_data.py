@@ -1,9 +1,9 @@
 import multiprocessing
-from utils import eraYearlyAverage,getCoordinates
+from other.utils import getCoordinates
 import xarray as xr
-import config
+import other.config as config
 import cdsapi
-import config
+import numpy as np 
 
 class ERA_Dataset():
     def __init__(self,variable):
@@ -55,7 +55,7 @@ class ERA_Dataset():
             },
             f'{config.ERA_PATH}/{variable}.nc')
 
-    def eraYearlyAverage(era,lat,lon,next_lat,next_lon,year):
+    def eraYearlyAverage(self,era,lat,lon,next_lat,next_lon,year):
         era = era.groupby('time.year').mean()
         era = era.isel(
         year=year - era.year.min().values.item(), #this only works if first year of data is 1984
@@ -68,7 +68,7 @@ class ERA_Dataset():
     def getRow(self,year,lat,lon,next_lat,next_lon,file_name):
         print(year,lat,lon,multiprocessing.current_process())
         era_temp = xr.open_dataset(f'{config.ERA_PATH}/{file_name}.nc',engine='netcdf4')
-        era_yearly_avg = eraYearlyAverage(era_temp,lat,lon,next_lat,next_lon,year)
+        era_yearly_avg = self.eraYearlyAverage(era_temp,lat,lon,next_lat,next_lon,year)
         era_temp.close()
         #append year to row for timeseries potential,can drop this when doing testing - append lat lon for unique key (comibned w year)
         row = [era_yearly_avg,year,lat,lon]
