@@ -12,14 +12,9 @@ class ERA_Dataset():
         self.output_file_path = f'{config.GENERATED_DATA}/era_{variable}_data.csv'
 
 
-    def download_era(variable):
+    def download_era(self,variable):
         c = cdsapi.Client()
-        # '2m_temperature'
-        # 'leaf_area_index_high_vegetation'
-        # 'leaf_area_index_low_vegetation'
-        # 'total_precipitation'
-        # 'surface_pressure'
-        # 'surface_net_solar_radiation'
+
 
 
         c.retrieve(
@@ -75,7 +70,8 @@ class ERA_Dataset():
         return row
 
     def generate_data(self,managed_forest_coordinates,ordered_latitudes,ordered_longitudes,writer,num_cores):
-        for year in range(year,year+36,1):
+        self.download_era(self.variable)
+        for year in range(1984,2020,1):
                 x = iter(managed_forest_coordinates)
                 p = multiprocessing.Pool(num_cores)
                 with p:

@@ -15,9 +15,12 @@ def netcdfToNumpy(netcdf_file,variable,shape_file,getUniqueKey):
     netcdf_file.rio.set_spatial_dims(x_dim="lon", y_dim="lat", inplace=True)
     netcdf_file.rio.write_crs("epsg:4326", inplace=True)
     clipped = netcdf_file.rio.clip([shape_file.geometry.apply(mapping)[0]], shape_file.crs,drop=True)
+    print(clipped)
     df = clipped.to_dataframe().reset_index()
+    df = df.dropna(0)
+    print(df)
     if(getUniqueKey):
-        return df[[variable,'year','lat','lon']].values
+        return df[['year','lat','lon',variable]].values
     else:
         return df[[variable]].values
 
@@ -43,6 +46,7 @@ def combineNetCDFs(file_paths:list,shape_file:geopandas.GeoDataFrame) -> np.ndar
                     other_ds = other_ds.isel(depth=slice(0,3)).groupby('time').sum('depth')
                 ds = xr.merge([ds,other_ds])
                 other_ds.close()
+        ds = ds.fillna(0)
         arr = netcdfToNumpy(ds,var,shape_file,getUniqueKey)
         getUniqueKey = False
         completed.append(var)
@@ -52,6 +56,7 @@ def combineNetCDFs(file_paths:list,shape_file:geopandas.GeoDataFrame) -> np.ndar
         else:
             out = np.concatenate((out,arr[:,0].reshape(-1,1)),1)
         ds.close()
+        print(out)
     #append year,lat,lon for index - can append them from first file as they should all be the same
     # for file in os.system(f'ls {config.CESM_PATH}/pr_*'):
     #     ds_temp = xr.open_dataset(file,engine='netcdf4')
@@ -62,7 +67,7 @@ def combineNetCDFs(file_paths:list,shape_file:geopandas.GeoDataFrame) -> np.ndar
     # out = np.concatenate((out,years),1)
     # out = np.concatenate((out,lat),1)
     # out = np.concatenate((out,lon),1)
-    return out 
+    return out,completed 
 
 
 # num of rows outputted should be # of years (31) * length of boreal coordinates (788) = 24428
@@ -74,9 +79,11 @@ if __name__ == '__main__':
 
     shape_file = geopandas.read_file(f'{config.SHAPEFILE_PATH}/NIR2016_MF.shp', crs="epsg:4326")
 
-    combined = combineNetCDFs(input_files,shape_file)
-    header = ','.join(list(map(lambda x: x.split('_')[0],input_files)))
-    header = header[:1] + ['year','lat','lon'] + header[1:]
+    combined,header = combineNetCDFs(input_files,shape_file)
+    # header = list(map(lambda x: x.split('_')[0],input_files))
+    header = ['year','lat','lon'] + header
+    header = ','.join(header)
+    print(header)
     np.savetxt(f'{config.DATA_PATH}/cesm_data.csv',np.asarray(combined),delimiter=',',header=header)
     duration = time.time() - start_time
     print(f'Completed in {duration} seconds.')
