@@ -1,83 +1,85 @@
-import multiprocessing
-from other.utils import getCoordinates
-import xarray as xr
+import os
 import other.config as config
-import cdsapi
-import numpy as np 
-
-class ERA_Dataset():
-    def __init__(self,variable):
-        self.variable = variable
-        self.columns = [f'{variable}','year','lat','lon']
-        self.output_file_path = f'{config.GENERATED_DATA}/era_{variable}_data.csv'
-
-
-    def download_era(self,variable):
-        c = cdsapi.Client()
+import time
+import geopandas 
+import numpy as np
+from other.generate_cmip_input_data import netcdfToNumpy
+import xarray as xr
+import pandas as pd
+from other.constants import RAW_ERA_VARIABLES
+from other.utils import seasonalAverages
 
 
 
-        c.retrieve(
-            'reanalysis-era5-land-monthly-means',
-            {
-                'format': 'netcdf',
-                'product_type': 'monthly_averaged_reanalysis',
-                'variable': variable,
-                'month': [
-                    '01', '02', '03',
-                    '04', '05', '06',
-                    '07', '08', '09',
-                    '10', '11', '12',
-                ],
-                'time': '00:00',
-                'area': [
-                    80, -140, 40,
-                    -40,
-                ],
-                'year': [
-                    '1984', '1985', '1986',
-                    '1987', '1988', '1989',
-                    '1990', '1991', '1992',
-                    '1993', '1994', '1995',
-                    '1996', '1997', '1998',
-                    '1999', '2000', '2001',
-                    '2002', '2003', '2004',
-                    '2005', '2006', '2007',
-                    '2008', '2009', '2010',
-                    '2011', '2012', '2013',
-                    '2014', '2015','2016','2017','2018','2019'
-                ],
-            },
-            f'{config.ERA_PATH}/{variable}.nc')
-
-    def eraYearlyAverage(self,era,lat,lon,next_lat,next_lon,year):
-        era = era.groupby('time.year').mean()
-        era = era.isel(
-        year=year - era.year.min().values.item(), #this only works if first year of data is 1984
-        latitude=np.logical_and(era.latitude >= lat,era.latitude <= next_lat), 
-        longitude=np.logical_and(era.longitude >= lon, era.longitude <= next_lon)
-        )
-        return (era.sum() / (len(era.latitude) * len(era.longitude)))[list(era.keys())[0]].values.item()
 
 
-    def getRow(self,year,lat,lon,next_lat,next_lon,file_name):
-        print(year,lat,lon,multiprocessing.current_process())
-        era_temp = xr.open_dataset(f'{config.ERA_PATH}/{file_name}.nc',engine='netcdf4')
-        era_yearly_avg = self.eraYearlyAverage(era_temp,lat,lon,next_lat,next_lon,year)
-        era_temp.close()
-        #append year to row for timeseries potential,can drop this when doing testing - append lat lon for unique key (comibned w year)
-        row = [era_yearly_avg,year,lat,lon]
-        return row
+def combineERANetcdf(file_paths:list,shape_file:geopandas.GeoDataFrame) -> np.ndarray :
+    out = np.empty(0)
+    getUniqueKey = True
+    headers = []
+    for file_index in range(len(file_paths)):
+        print(file_paths[file_index])
+        ds = xr.open_dataset(f'{config.ERA_PATH}/reprojected/{file_paths[file_index]}',engine='netcdf4')
+        var = list(ds.keys())[0]
+        headers.append(var)
+        ds = ds.fillna(0)
+        arr = netcdfToNumpy(ds,var,shape_file,getUniqueKey)
+        getUniqueKey = False
+        #if array is empty, set first variable
+        if(len(out) == 0):
+            out = arr.reshape(-1,4)
+        else:
+            print(arr[:,0].reshape(-1,1))
+            out = np.concatenate((out,arr[:,0].reshape(-1,1)),1)
+        ds.close()
+    return out,headers
 
-    def generate_data(self,managed_forest_coordinates,ordered_latitudes,ordered_longitudes,writer,num_cores):
-        self.download_era(self.variable)
-        for year in range(1984,2020,1):
-                x = iter(managed_forest_coordinates)
-                p = multiprocessing.Pool(num_cores)
-                with p:
-                    for _ in range(int(len(managed_forest_coordinates))):
-                        lat,lon,next_lat,next_lon = getCoordinates(next(x),ordered_latitudes,ordered_longitudes)
-                        #beware, failed child processes do not give error by default
-                        p.apply_async(self.getRow,[year,lat,lon,next_lat,next_lon,self.variable + '.nc'],callback = writer.writerow)                
-                    p.close()
-                    p.join()
+
+def ERAVariables(shape_file):
+    getYearLatLon = True
+    out = []
+    headers = []
+    for raw_variable in RAW_ERA_VARIABLES:
+        ds = xr.open_dataset(f'{config.ERA_PATH}/reprojected/reprojected_{raw_variable}.nc',engine='netcdf4')
+        ds = ds.fillna(0)
+        var = list(ds.keys())[0]
+        if(var == 't2m'):
+            out.extend(seasonalAverages(ds,var,shape_file,'ERA'))
+            headers.extend(['tas_DJF','tas_MAM','tas_JJA','tas_SON'])
+        else:
+            out.append(netcdfToNumpy(ds,var,shape_file,getYearLatLon))
+            if(getYearLatLon):
+                headers.extend(['year','lat','lon'])
+            getYearLatLon = False
+            headers.append(var)
+        ds.close()
+    out = np.concatenate(out,axis=1)
+    return out,headers
+
+
+def reprojectNetCDF(file_name):
+    os.system(f'cdo remapbil,{config.DATA_PATH}/mygrid {config.ERA_PATH}/{file_name} {config.ERA_PATH}/reprojected/reprojected_{file_name}')
+
+
+def transformData(array,header):
+    print(header)
+    df = pd.DataFrame(array)
+    print(df)
+    df.columns = header
+    df['lai'] = df['lai_lv'] + df['lai_hv']
+    df['tp'] = df['tp'] / ((24*60*60*30.437) * 1000)
+    df['ro'] = df['ro'] / ((24*60*60*30.437) * 1000)
+    df['evabs'] = df['evabs'] / 0.001
+    return df 
+
+
+if __name__ == '__main__':
+    start_time = time.time()
+    for file in RAW_ERA_VARIABLES:
+        if(not os.path.exists(f'{config.ERA_PATH}/reprojected/reprojected_{file}.nc')):
+            reprojectNetCDF(file)
+    shape_file = geopandas.read_file(f'{config.SHAPEFILE_PATH}/NIR2016_MF.shp', crs="epsg:4326")
+    combined,header = ERAVariables(shape_file)
+    df = transformData(combined,header)
+    np.savetxt(f'{config.DATA_PATH}/era_data.csv',np.asarray(df),delimiter=',',header=','.join(df.columns))
+    print(f'Completed in {time.time() - start_time} seconds.')

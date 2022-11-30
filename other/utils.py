@@ -6,7 +6,9 @@ from shapely.ops import transform
 import numpy as np
 import other.config as config
 import csv 
-
+import cftime
+import dask
+import geopandas
 def readCoordinates(file_name:str,is_grid_file:bool) -> list:
     coordinates = []
     with open(f'{config.DATA_PATH}/{file_name}', newline='') as csvfile:
@@ -67,8 +69,42 @@ def getArea(lat,lon,next_lat,next_lon) -> float:
     # print(area)
     return area[0]
 
-#convert 0-360 to 180 lons, and resort 
+#convert 0-360 to 180 lons, and re-sort 
 def scaleLongitudes(dataset:xr.Dataset,lon_variable:str) -> xr.Dataset:
     dataset[lon_variable] = np.where(dataset[lon_variable]> 180,dataset[lon_variable] - 360, dataset[lon_variable]) 
     return dataset.sortby(dataset.lon)
-    
+
+
+def clipWithShapeFile(netcdf_file,variable,shape_file):
+    netcdf_file = netcdf_file[variable]
+    netcdf_file.rio.set_spatial_dims(x_dim="lon", y_dim="lat", inplace=True)
+    netcdf_file.rio.write_crs("epsg:4326", inplace=True)
+    clipped = netcdf_file.rio.clip([shape_file.geometry.apply(mapping)[0]], shape_file.crs,drop=True)
+    return clipped
+
+
+#split temperatures into seasonal temps
+def seasonalAverages(netcdf_file:xr.Dataset, variable:str,shape_file:geopandas.GeoDataFrame,upstream:str) -> list:
+    netcdf_file = scaleLongitudes(netcdf_file, 'lon')
+    years = np.unique(netcdf_file['time.year'].data)
+    netcdf_file = clipWithShapeFile(netcdf_file,variable,shape_file)
+    output = [[] for _ in range(4)]
+    #stack each seasonal avg of each year
+    for year in years:
+        if(upstream == 'CESM'):
+            start_time = cftime.DatetimeNoLeap(year, 1, 1, 1, 0, 0, 0,has_year_zero=True)
+            end_time =cftime.DatetimeNoLeap(year+1, 1, 1, 1, 0, 0, 0,has_year_zero=True)
+        elif(upstream == 'ERA'):
+            start_time = np.datetime64(f'{year}-01-01')
+            end_time =np.datetime64(f'{year+1}-01-01')
+        year_slice = netcdf_file.loc[dict(time=slice(start_time,end_time))]
+        seasonal_data = year_slice.groupby('time.season').mean()
+        seasons = seasonal_data.season.data
+        for season_index in range(len(seasonal_data.season.data)):
+            single_season_data = seasonal_data.sel(season=seasons[season_index]).data.reshape(1,-1)
+            output[season_index].append(single_season_data)
+    #concatenate values together
+    output = [np.concatenate(x,axis=1).reshape(-1,1) for x in output]
+    #remove null values
+    # output = [np.expand_dims(x[~np.isnan(x)].compute_chunk_sizes(),axis=1) for x in output]
+    return output

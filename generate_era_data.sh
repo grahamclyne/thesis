@@ -13,7 +13,10 @@ export NUM_CORES=32
 export PROJECT_PATH='/home/gclyne/projects/def-dmatthew/gclyne/thesis'
 source ~/ENV/bin/activate
 
+#!/bin/bash
+era=("evaporation_from_bare_soil" "leaf_area_index_high_vegetation" "leaf_area_index_low_vegetation"  "runoff"  "skin_temperature" "soil_temperature_level_1"  "surface_pressure"  "total_precipitation" "volumetric_soil_water_layer_1")
 
-
-python ${PROJECT_PATH}/other/generate_era_data.py --era_file_name total_precipitation.nc
-python ${PROJECT_PATH}/other/generate_era_data.py --era_file_name 2m_temperature.nc
+for i in ${era[@]};
+do
+PYTHONPATH=/home/gclyne/projects/def-dmatthew/gclyne/thesis python -m other.generation_runner --data_set era --era_variable $i
+done

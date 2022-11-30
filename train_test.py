@@ -1,7 +1,6 @@
 import numpy as np
 import torch as T
 import torch.nn as nn
-import other.config as config
 from sklearn import preprocessing
 import time
 from pickle import dump
@@ -10,7 +9,7 @@ from torchmetrics.functional import r2_score as R2Score
 import pandas as pd
 from model import CMIPDataset,Net
 import other.constants as constants
-
+from other.config import DATA_PATH
 # To summarize, when calling a PyTorch neural network to compute output during training, you should set the mode as net.train() 
 # and not use the no_grad() statement. But when you aren't training, you should set the mode as net.eval() and use the no_grad() statement
 
@@ -20,21 +19,23 @@ if __name__ == "__main__":
     
     
     #prepare and scale data
-    data = pd.read_csv('processed_cmip_data.csv')
-    ds = data[data['years'] < 2012]
-    final_test = data[data['years'] >= 2012] 
+    data = pd.read_csv(f'{DATA_PATH}/cesm_data.csv')
+    data = data.rename(columns={'# year':'year'})
+    ds = data[data['year'] < 2012]
+    final_test = data[data['year'] >= 2012] 
 
     min_max_scaler = preprocessing.MinMaxScaler(feature_range=(0,1))
     input_variables = constants.MODEL_INPUT_VARIABLES
     input_variable_tuple = tuple(constants.MODEL_INPUT_VARIABLES)
     target_variables = constants.MODEL_TARGET_VARIABLES
+    print(target_variables)
     scaler = min_max_scaler.fit(ds.loc[:,input_variables])
     #split these so no data is leaked between test and training
     ds.loc[:,input_variable_tuple] = scaler.transform(ds.loc[:,input_variable_tuple])
     final_test.loc[:,input_variable_tuple] = scaler.transform(final_test.loc[:,input_variable_tuple])
-    ds = CMIPDataset(ds[input_variables + target_variables].to_numpy(),num_of_inputs=len(input_variables))
-    final_test = CMIPDataset(final_test[input_variables + target_variables].to_numpy(),num_of_inputs=len(input_variables))
-
+    ds = CMIPDataset(ds[input_variables + target_variables].to_numpy(),num_of_inputs=len(input_variables),num_of_targets=len(target_variables))
+    final_test = CMIPDataset(final_test[input_variables + target_variables].to_numpy(),num_of_inputs=len(input_variables),num_of_targets=len(target_variables))
+    print(final_test)
     #hyperparameters
     num_of_epochs = 300
     learning_rate = 0.0005
@@ -44,7 +45,7 @@ if __name__ == "__main__":
     valid_set_size = len(ds) - train_set_size
     train,test = T.utils.data.random_split(ds, [train_set_size, valid_set_size], generator=T.Generator().manual_seed(0))
 
-    model = Net(len(input_variables))
+    model = Net(len(input_variables),len(target_variables))
     loss_function = nn.MSELoss()
     train_ldr = T.utils.data.DataLoader(train,batch_size=test_validation_batch_size,shuffle=True)
     test_ldr = T.utils.data.DataLoader(test,batch_size=test_validation_batch_size,shuffle=True)

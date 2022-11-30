@@ -1,22 +1,23 @@
 import os
-import other.constants as constants
 import other.config as config
+CMIP_TABLE='Lmon'
+CMIP_VARIABLE='shrubFrac'
+CMIP_EXPERIMENT = 'historical'
+CMIP_VARIANT = 'r8i1p1f1'
+CMIP_SOURCE = 'CESM2'
+CMIP_NODE='aims3.llnl.gov'
 
-os.chdir(config.CESM_PATH)
-for key in constants.CMIP_VARIABLES:
-    wget_string = f'wget http://esgf-data.dkrz.de/esg-search/wget\?project=CMIP6\
-\&experiment_id={constants.CMIP_EXPERIMENT}\
-\&source_id={constants.CMIP_SOURCE}\
-\&data_node=aims3.llnl.gov\
-\&variant_label={constants.CMIP_VARIANT}\
-\&table_id={key}\
-\&variable_id={",".join(constants.CMIP_VARIABLES[key])}'
+wget_string = f'wget http://esgf-data.dkrz.de/esg-search/wget\?project=CMIP6\
+\&experiment_id={CMIP_EXPERIMENT}\
+\&source_id={CMIP_SOURCE}\
+\&data_node={CMIP_NODE}\
+\&variant_label={CMIP_VARIANT}\
+\&table_id={CMIP_TABLE}\
+\&variable_id={CMIP_VARIABLE}'
+os.system(wget_string + f' -O {config.CESM_PATH}/wget_{CMIP_VARIABLE}.txt')
 
 
-#how to verify each will give you four files? or the same amount of data? some variants are missing decades
-    os.system(wget_string + f' -O wget_{key}.txt')
-os.system('chmod +x wget*')
+os.system(f'chmod +x {config.CESM_PATH}/wget*')
 
-for key in constants.CMIP_VARIABLES:
-    os.system(f'./wget_{key}.txt -s')
-os.system('rm wget*')
+os.system(f'sh {config.CESM_PATH}/wget_{CMIP_VARIABLE}.txt -s')
+os.system(f'rm {config.CESM_PATH}/wget*.txt')
