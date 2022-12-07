@@ -4,48 +4,38 @@ import pandas as pd
 import other.config as config
 import numpy as np
 from functools import reduce
+from sklearn.metrics import mean_squared_error,r2_score
 
-leaf = xr.open_dataset('/Users/gclyne/Downloads/cLeaf_Lmon_CESM2_historical_r11i1p1f1_gn_200001-201412.nc')
-root = xr.open_dataset('/Users/gclyne/Downloads/cRoot_Lmon_CESM2_historical_r11i1p1f1_gn_200001-201412.nc')
-veg = xr.open_dataset('/Users/gclyne/Downloads/cVeg_Lmon_CESM2_historical_r11i1p1f1_gn_200001-201412.nc')
-stem = xr.open_dataset('/Users/gclyne/Downloads/cStem_Emon_CESM2_historical_r11i1p1f1_gn_200001-201412.nc')
-other = xr.open_dataset('/Users/gclyne/Downloads/cOther_Emon_CESM2_historical_r11i1p1f1_gn_200001-201412.nc')
+cesm = pd.read_csv(f'{config.DATA_PATH}/cesm_data.csv') #t/ha
+nfis_agb = pd.read_csv(f'{config.DATA_PATH}/nfis_agb.csv') 
+predicted = pd.read_csv(f'{config.DATA_PATH}/forest_carbon_observed.csv')
 
-nfis_agb = pd.read_csv(f'{config.DATA_PATH}/nfis_agb.csv')
 
-#t/ha
-df_leaf = leaf.groupby('time.year').mean().sel(year=2014).to_dataframe().reset_index().drop(columns=['hist_interval','lat_bnds','lon_bnds','year']).groupby(['lat','lon']).mean().reset_index()
-df_other = other.groupby('time.year').mean().sel(year=2014).to_dataframe().reset_index().drop(columns=['hist_interval','lat_bnds','lon_bnds','year']).groupby(['lat','lon']).mean().reset_index()
-df_stem = stem.groupby('time.year').mean().sel(year=2014).to_dataframe().reset_index().drop(columns=['hist_interval','lat_bnds','lon_bnds','year']).groupby(['lat','lon']).mean().reset_index()
-df_stem
+cesm = cesm[cesm['# year'] == 2014]
+predicted = predicted[predicted.year == 2015]
 
-df_leaf['lon'] = np.where(df_leaf['lon']> 180,df_leaf['lon'] - 360, df_leaf['lon']) 
-df_other['lon'] = np.where(df_other['lon']> 180,df_other['lon'] - 360, df_other['lon']) 
-df_stem['lon'] = np.where(df_stem['lon']> 180,df_stem['lon'] - 360, df_stem['lon']) 
-
-df_leaf['lat'] = round(df_leaf['lat'],7)
-df_other['lat'] = round(df_other['lat'],7)
-df_stem['lat'] = round(df_stem['lat'],7)
-
-data_frames = [df_leaf,df_other,df_stem,nfis_agb]
+cesm['cesm_agb'] = cesm['cLeaf'] + cesm['cStem'] + cesm['cOther']
+predicted['predicted_agb'] = predicted['cLeaf'] + predicted['cStem'] + predicted['cOther']
+nfis_agb['agb'] = nfis_agb['agb'] / 10 #t/ha to kg/m2 is to divide by 10
+predicted = predicted[predicted['predicted_agb'] > 0]
+data_frames = [cesm,nfis_agb,predicted]
 df_merged = reduce(lambda left,right: pd.merge(left,right,on=['lat','lon'],
                                             how='inner'), data_frames)
-
-
-df_merged['cesm_agb'] = df_merged['cLeaf'] + df_merged['cOther'] + df_merged['cStem']
-df_merged['agb'] = df_merged['agb'] / 10
-
+print(cesm,predicted)
+# df_merged = df_merged.dropna(how='any')
+df_merged = df_merged.fillna(0)
 #rmse
-sum((df_merged['cesm_agb'] - df_merged['agb'])**2)/len(df_merged)
+cesm_rmse = sum((df_merged['cesm_agb'] - df_merged['agb'])**2)/len(df_merged)
+pred_rmse = sum((df_merged['predicted_agb'] - df_merged['agb'])**2)/len(df_merged)
+print('cesm_rmse: ',cesm_rmse)
+print('prediced_rmse: ',pred_rmse)
+print('cesm_r2: ',r2_score(df_merged['agb'],df_merged['cesm_agb']))
+print('pred_r2:', r2_score(df_merged['agb'],df_merged['predicted_agb']))
 
 
 #plot
-agb_df = pd.read_csv('/Users/gclyne/thesis/data/nfis_agb.csv')
-comparison = pd.read_csv('/Users/gclyne/thesis/biomass_comparison.csv')
-agb_df['agb'] = agb_df['agb'] / 10 #t/ha to kg/m2 is to divide by 10
-comparison = comparison[['agb','lat','lon']]
-output = comparison.pivot(index='lat', columns='lon', values='agb')
-output = output.fillna(0)
+comparison = df_merged[['predicted_agb','lat','lon']]
+output = comparison.pivot(index='lat', columns='lon', values='predicted_agb')
 fig = go.Figure(data=[go.Surface(z=output.values)])
 fig.update_layout(title='NFIS reported Above-Ground Biomass', autosize=True)
 fig.update_layout(
@@ -73,4 +63,4 @@ fig.update_layout(
         # xaxis = dict(tickmode = 'array',ticktext = comparison['lat']),
         # yaxis = dict(tickmode = 'array',tickvals = list(range(0,len(comparison['lon']))),ticktext = comparison['lon'])
         )
-fig.write_image('agb_biomass_nfis.png')
+fig.write_image('agb_biomass_predicted.png')

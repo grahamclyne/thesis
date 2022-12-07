@@ -45,7 +45,7 @@ def ERAVariables(shape_file):
         var = list(ds.keys())[0]
         if(var == 't2m'):
             out.extend(seasonalAverages(ds,var,shape_file,'ERA'))
-            headers.extend(['tas_DJF','tas_MAM','tas_JJA','tas_SON'])
+            headers.extend(['tas_DJF','tas_JJA','tas_MAM','tas_SON'])
         else:
             out.append(netcdfToNumpy(ds,var,shape_file,getYearLatLon))
             if(getYearLatLon):
@@ -62,14 +62,13 @@ def reprojectNetCDF(file_name):
 
 
 def transformData(array,header):
-    print(header)
     df = pd.DataFrame(array)
-    print(df)
     df.columns = header
     df['lai'] = df['lai_lv'] + df['lai_hv']
-    df['tp'] = df['tp'] / ((24*60*60*30.437) * 1000)
-    df['ro'] = df['ro'] / ((24*60*60*30.437) * 1000)
-    df['evabs'] = df['evabs'] / 0.001
+    df['tp'] = (df['tp']*1000) / (24*60*60*30.437)
+    df['ro'] = (df['ro'] * 1000) / (24*60*60*30.437)
+    df['evabs'] = (df['evabs'] * 1000)/ (24*60*60*30.437) * -1
+    df['swvl1'] = df['swvl1'] * 100
     return df 
 
 

@@ -1,10 +1,12 @@
-CMIP_VARIABLES = {'Lmon':['cCwd','cVeg','cLitter','cLeaf','cRoot','evspsblsoi','lai','tsl','mrro','mrsos','grassFrac','shrubFrac','cropFrac','baresoilFrac','residualFrac','treeFrac','shrubFrac'],'Emon':['cSoil','cStem''wetlandFrac'],'Amon':['ps','pr','tas']}
-RAW_CMIP_VARIABLES = ['cCwd','cVeg','cLitter','cLeaf','cRoot','evspsblsoi','lai','tsl','mrro','mrsos','grassFrac','shrubFrac','cropFrac','baresoilFrac','residualFrac','treeFrac','shrubFrac','cSoil','cStem','wetlandFrac','ps','pr','tas']
+CMIP_VARIABLES = {'Lmon':['cCwd','cVeg','cLitter','cLeaf','cRoot','evspsblsoi','lai','tsl','mrro','mrsos','grassFrac','shrubFrac','cropFrac','baresoilFrac','residualFrac','treeFrac','shrubFrac'],'Emon':['cSoil','cStem','wetlandFrac','cOther'],'Amon':['ps','pr','tas']}
+RAW_CMIP_VARIABLES = ['cOther','cCwd','cVeg','cLitter','cLeaf','cRoot','evspsblsoi','lai','tsl','mrro','mrsos','grassFrac','shrubFrac','cropFrac','baresoilFrac','residualFrac','treeFrac','shrubFrac','cSoil','cStem','wetlandFrac','ps','pr','tas']
 RAW_ERA_VARIABLES = ['2m_temperature', 'evaporation_from_bare_soil', 'leaf_area_index_high_vegetation','leaf_area_index_low_vegetation', 'runoff', 'skin_temperature','soil_temperature_level_1', 'surface_pressure', 'total_precipitation','volumetric_soil_water_layer_1']
 PROCESSED_ERA_VARIABLES = ['t2m_DJF', 't2m_MAM', 't2m_JJA', 't2m_SON', 'year', 'lat', 'lon', 'evabs', 'lai_hv', 'lai_lv', 'ro', 'skt', 'stl1', 'sp', 'tp', 'swvl1']
 RAW_NFIS_VARIABLES = ['no_change','water','snow_ice','rock_rubble','exposed_barren_land','bryoids','shrubs','wetland','wetland-treed','herbs','coniferous','broadleaf','mixedwood']
 MODEL_INPUT_VARIABLES = ['evspsblsoi','lai','tsl','mrro','mrsos','grassCropFrac','wetlandFrac','baresoilFrac','residualFrac','treeFrac','ps','pr','tas_DJF', 'tas_MAM', 'tas_JJA', 'tas_SON',]
-MODEL_TARGET_VARIABLES = ['cSoil','cCwd','cVeg','cLitter','cLeaf','cRoot','cStem']
+MODEL_TARGET_VARIABLES = ['cSoil','cCwd','cVeg','cLitter','cLeaf','cRoot','cStem','cOther']
+# MODEL_TARGET_VARIABLES = ['cLeaf','cStem','cOther']
+# MODEL_INPUT_VARIABLES = ['evspsblsoi','lai','mrro','mrsos','wetlandFrac','baresoilFrac','residualFrac','treeFrac','ps','pr','tas_DJF','tas_JJA']
 
 
 CMIP_EXPERIMENT = 'historical'
@@ -68,16 +70,26 @@ Tree Cover Percentage	%	Percentage of entire grid cell  that is covered by trees
 """
 CONVERT ERA TO CESM (30.437 avg number of days in a month)
 t2m -> tas 
-evabs / ((24*60*60*30.437) * 1000) -> evspsblsoi  #1000 here bc 1kg/m^2 is 1mm of thickness of water
+(evabs * 1000)/ ((24*60*60*30.437) -> evspsblsoi  #1000 here bc 1kg/m^2 is 1mm of thickness of water
 lai_hv + lai_lv -> lai
 stl1 -> tsl
 sp -> ps
-ro / ((24*60*60*30.437) * 1000) -> mrro
-tp / ((24*60*60*30.437) * 1000) -> pr
-swvl1 -> 
+(ro * 1000)/ ((24*60*60*30.437)  -> mrro
+(tp * 1000)/ ((24*60*60*30.437)  -> pr
+swvl1 * 100 -> mrsos 
 
 
-The term volumetric water content (VWC) refers to a given volume of water contained in given volume of substrate (soil or any other soiless media that can soak water). this makes the term have a unit of measurement m3/m3. that means a given m3 of water contained in a given m3 of soil or other media. In short the units (m3/m3) cancels out virtually. So if your device measure for instance 20 % VWC in a soil depth of say 40 cm, it means, of the 40 cm depth in the soil there contains 20 % water. Hence the water content in terms of depth (cm),i.e. 40 cm soil depth is 20% of 40 cm=20/100 * 40 cm= 8 cm. if you wanted to have your final answer in mm then you convert 8 cm to mm which you multiply by 10 as the conversion factor from cm to mm. Your final answer therefore = 80 mm. this 80 mm you have as your final answer means, when you dig 40 cm deep in the earth of soil you will have 80 mm of water in that soil. I hope it is clear.
+The term volumetric water content (VWC) refers to a given volume of water contained in
+ given volume of substrate (soil or any other soiless media that can soak water). 
+ this makes the term have a unit of measurement m3/m3. that means a given m3 of 
+ water contained in a given m3 of soil or other media. In short the units (m3/m3) 
+ cancels out virtually. So if your device measure for instance 20 % VWC in a soil 
+ depth of say 40 cm, it means, of the 40 cm depth in the soil there contains 20 % water. 
+ Hence the water content in terms of depth (cm),i.e. 40 cm soil depth is 20% of 40 cm=20/100 * 40 cm= 8 cm.
+  if you wanted to have your final answer in mm then you convert 8 cm to mm which you multiply
+   by 10 as the conversion factor from cm to mm. Your final answer therefore = 80 mm. 
+   this 80 mm you have as your final answer means, when you dig 40 cm deep in the earth of
+    soil you will have 80 mm of water in that soil. I hope it is clear.
 
 CONVERT NFIS TO CESM 
 
@@ -107,3 +119,12 @@ MODEL TARGET VARIABLES (DEPENDENT VARIABLES)
 
 
 """
+
+
+
+
+
+
+RAW_CMIP_VARIABLES = ['cOther','cCwd','cVeg','cLitter','cLeaf','cRoot','evspsblsoi',
+'lai','tsl','mrro','mrsos','grassFrac','shrubFrac','cropFrac','baresoilFrac','residualFrac',
+'treeFrac','shrubFrac','cSoil','cStem','wetlandFrac','ps','pr','tas']

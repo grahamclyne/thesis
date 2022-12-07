@@ -17,17 +17,20 @@ class CMIPDataset(T.utils.data.Dataset):
 class Net(T.nn.Module):
   def __init__(self,num_of_inputs,num_of_targets):
     super(Net, self).__init__()
-    self.hid1 = T.nn.Linear(num_of_inputs,20) 
-    self.hid2 = T.nn.Linear(20,30)
-    self.hid5 = T.nn.Linear(30,20)
-    # self.drop1 = T.nn.Dropout(0.50) #example of dropout layer
-    self.oupt = T.nn.Linear(20, num_of_targets)
+    self.hid1 = T.nn.Linear(num_of_inputs,15) 
+    self.hid2 = T.nn.Linear(15,20)
+    self.batchnorm1 = T.nn.BatchNorm1d(20)
+
+    self.hid3 = T.nn.Linear(20,15)
+    # self.drop1 = T.nn.Dropout(.5) #example of dropout layer
+
+    self.oupt = T.nn.Linear(15, num_of_targets)
 
   def forward(self, x):
     z = T.relu(self.hid1(x))
     z = T.relu(self.hid2(z))
-    z = T.relu(self.hid5(z))
-
+    z = self.batchnorm1(z)
+    z = T.relu(self.hid3(z))
     # z = self.drop1(z)
     z = self.oupt(z)  # no activation bc of regression
     return z
