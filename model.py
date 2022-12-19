@@ -1,5 +1,4 @@
 import torch as T
-
 class CMIPDataset(T.utils.data.Dataset):
     def __init__(self, data,num_of_inputs,num_of_targets):
         self.data = data

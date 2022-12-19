@@ -57,6 +57,8 @@ mrro            Total Runoff	kg m-2 s-1	The total run-off (including drainage th
 pr              Precipitation	kg m-2 s-1	includes both liquid and solid phases	at surface; includes both liquid and solid phases from all types of clouds (both large-scale and convective)
 mrsos           Moisture in Upper Portion of Soil Column	kg m-2	The mass of water in all phases in the upper 10cm of the  soil layer.	the mass of water in all phases in a thin surface soil layer.
 
+
+*** TODO: ADD CARBON TARGET VAIRABLES ****
 Natural Grass Area Percentage	%	Percentage of entire grid cell that is covered by natural grass.		grassFrac
 Percentage Cover by Shrub	%	Percentage of entire grid cell  that is covered by shrub.	fraction of entire grid cell  that is covered by shrub.	shrubFrac
 Percentage Crop Cover	%	Percentage of entire grid cell  that is covered by crop.		cropFrac

@@ -1,0 +1,11 @@
+params:
+  epoch_count: 20
+  lr: 5e-5
+  batch_size: 128
+files:
+  train_data:
+  test_data: 
+paths:
+  log:
+  data:
+  
