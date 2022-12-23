@@ -1,6 +1,5 @@
 
 from socket import SO_RCVTIMEO
-import torch.nn as nn 
 from torch import nn, Tensor
 import torch
 import math
@@ -64,7 +63,7 @@ class PositionalEncoding(nn.Module):
         div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model))
         pe[:, 0::2] = torch.sin(position * div_term)
         pe[:, 1::2] = torch.cos(position * div_term)
-        pe = pe.unsqueeze(0).transpose(0, 1)
+        pe = pe.unsqueeze(0)
         self.register_buffer('pe', pe)
 
     def forward(self, x):
@@ -72,13 +71,13 @@ class PositionalEncoding(nn.Module):
         Args:
             x: the sequence fed to the positional encoder model (required).
         Shape:
-            x: [sequence length, batch size, embed dim]
-            output: [sequence length, batch size, embed dim]
+            x: [ batch size, seq len, embed dim]
+            output: [batch size, seq len, embed dim]
         Examples:
             >>> output = pos_encoder(x)
         """
 
-        x = x + self.pe[:x.size(0), :]
+        x = x + self.pe[:x.size(1), :]
         return self.dropout(x)
 
 
@@ -130,8 +129,8 @@ class TestTransformer(nn.Module):
         dropout_encoder: float=0.0, 
         dropout_decoder: float=0.2,
         dropout_pos_enc: float=0.0,
-        dim_feedforward_encoder: int=2048,
-        dim_feedforward_decoder: int=2048,
+        dim_feedforward_encoder: int=256,
+        dim_feedforward_decoder: int=256,
         num_predicted_features: int=1
         ): 
 
@@ -179,21 +178,19 @@ class TestTransformer(nn.Module):
         # print("dim_val is: {}".format(dim_val))
 
         # Creating the three linear layers needed for the model
-        # self.encoder_input_layer = nn.Linear(
-        #     in_features=input_size, 
-        #     out_features=dim_val 
-        #     )
+        self.encoder_input_layer = nn.Linear(
+            in_features=input_size, 
+            out_features=dim_val 
+            )
 
-        self.decoder_input_layer = nn.Linear(
-            in_features=num_predicted_features,
-            out_features=dim_val
-            )  
+        # self.decoder_input_layer = nn.Linear(
+        #     in_features=num_predicted_features,
+        #     out_features=dim_val
+        #     )  
 
         # Create positional encoder
         self.positional_encoding_layer = PositionalEncoding(
-            d_model=dim_val,
-            dropout=dropout_pos_enc
-            )
+            d_model=dim_val)
 
         # The encoder layer used in the paper is identical to the one used by
         # Vaswani et al (2017) on which the PyTorch module is based.
@@ -201,8 +198,7 @@ class TestTransformer(nn.Module):
             d_model=dim_val, 
             nhead=n_heads,
             dim_feedforward=dim_feedforward_encoder,
-            dropout=dropout_encoder,
-            batch_first=batch_first,
+            batch_first=True
             )
 
         # Stack the encoder layers in nn.TransformerDecoder
@@ -257,10 +253,10 @@ class TestTransformer(nn.Module):
         """
 
         # print("From model.forward(): Size of src as given to forward(): {}".format(src.size()))
-        # print('src input tensor', src[0])
+        # print('src input tensor', src)
         # Pass throguh the input layer right before the encoder
-        # src = self.encoder_input_layer(src) # src shape: [batch_size, src length, dim_val] regardless of number of input features
-        # # print("From model.forward(): Size of src after input layer: {}".format(src.size()))
+        src = self.encoder_input_layer(src) # src shape: [batch_size, src length, dim_val] regardless of number of input features
+        # print("From model.forward(): Size of src after input layer: {}".format(src.size()))
         # print('src after encoding input layer', src)
         # Pass through the positional encoding layer
         src = self.positional_encoding_layer(src) # src shape: [batch_size, src length, dim_val] regardless of number of input features
@@ -271,9 +267,8 @@ class TestTransformer(nn.Module):
         # which they are not in this time series use case, because all my
         # input sequences are naturally of the same length. 
         # (https://github.com/huggingface/transformers/issues/4083)
-        src = self.encoder( # src shape: [batch_size, enc_seq_len, dim_val]
-            src)           
-        # print('src after enocer layer',src[0])
+        src = self.encoder(src)           
+        # print('src after encoder layer: \n',src)
         # print("From model.forward(): Size of src after encoder: {}".format(src.size()))
         # output = self.decoder(src)
         output = self.linear1(src)

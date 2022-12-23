@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 from other.utils import readCoordinates
 import torch as T
-from transformer_no_decoder import TimeSeriesTransformer,generate_square_subsequent_mask,CMIPTimeSeriesDataset
+from transformer_no_decoder import TestTransformer,generate_square_subsequent_mask,CMIPTimeSeriesDataset
 from sklearn.metrics import r2_score
 from torchmetrics.functional import r2_score as R2Score
 from other.constants import MODEL_INPUT_VARIABLES, MODEL_TARGET_VARIABLES
@@ -38,14 +38,14 @@ output_sequence_length = 5
 
 train,validation,hold_out = T.utils.data.random_split(ds, [train_set_size, valid_set_size,hold_out], generator=T.Generator().manual_seed(0))
 
-model = TimeSeriesTransformer(
+model = TestTransformer(
     input_size=len(MODEL_INPUT_VARIABLES),
     dec_seq_len=30,
     batch_first=True,
-    dim_val=24,
-    n_encoder_layers=128,
-    n_decoder_layers=128,
-    n_heads=8,
+    dim_val=16,
+    n_encoder_layers=16,
+    n_decoder_layers=16,
+    n_heads=4,
     num_predicted_features=len(MODEL_TARGET_VARIABLES)
 )
 
