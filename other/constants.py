@@ -3,10 +3,10 @@ RAW_CMIP_VARIABLES = ['cOther','cCwd','cVeg','cLitter','cLeaf','cRoot','evspsbls
 RAW_ERA_VARIABLES = ['2m_temperature', 'evaporation_from_bare_soil', 'leaf_area_index_high_vegetation','leaf_area_index_low_vegetation', 'runoff', 'skin_temperature','soil_temperature_level_1', 'surface_pressure', 'total_precipitation','volumetric_soil_water_layer_1']
 PROCESSED_ERA_VARIABLES = ['t2m_DJF', 't2m_MAM', 't2m_JJA', 't2m_SON', 'year', 'lat', 'lon', 'evabs', 'lai_hv', 'lai_lv', 'ro', 'skt', 'stl1', 'sp', 'tp', 'swvl1']
 RAW_NFIS_VARIABLES = ['no_change','water','snow_ice','rock_rubble','exposed_barren_land','bryoids','shrubs','wetland','wetland-treed','herbs','coniferous','broadleaf','mixedwood']
-MODEL_INPUT_VARIABLES = ['evspsblsoi','lai','tsl','mrro','mrsos','grassCropFrac','wetlandFrac','baresoilFrac','residualFrac','treeFrac','ps','pr','tas_DJF', 'tas_MAM', 'tas_JJA', 'tas_SON',]
+MODEL_INPUT_VARIABLES = ['evspsblsoi','lai','ps','tsl','mrro','mrsos','grassCropFrac','wetlandFrac','baresoilFrac','residualFrac','treeFrac','pr','tas_DJF', 'tas_MAM', 'tas_JJA', 'tas_SON',]
 MODEL_TARGET_VARIABLES = ['cSoil','cCwd','cVeg','cLitter','cLeaf','cRoot','cStem','cOther']
 # MODEL_TARGET_VARIABLES = ['cLeaf','cStem','cOther']
-# MODEL_INPUT_VARIABLES = ['evspsblsoi','lai','mrro','mrsos','wetlandFrac','baresoilFrac','residualFrac','treeFrac','ps','pr','tas_DJF','tas_JJA']
+MODEL_INPUT_VARIABLES = ['lai','tsl','mrsos','grassCropFrac','wetlandFrac','baresoilFrac','residualFrac','treeFrac','tas_DJF', 'tas_MAM', 'tas_JJA', 'tas_SON',]
 
 
 CMIP_EXPERIMENT = 'historical'
