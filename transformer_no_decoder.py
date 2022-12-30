@@ -1,5 +1,4 @@
 
-from socket import SO_RCVTIMEO
 from torch import nn, Tensor
 import torch
 import math
@@ -8,25 +7,8 @@ import numpy as np
 from other.constants import MODEL_INPUT_VARIABLES,MODEL_TARGET_VARIABLES
 
 class CMIPTimeSeriesDataset(torch.utils.data.Dataset):
-    def __init__(self, data,coordinates):
-        self.seq_len = 30
-        def getRollingWindow(dataframe:pd.DataFrame) -> np.ndarray:
-            dataframe = dataframe[MODEL_INPUT_VARIABLES + MODEL_TARGET_VARIABLES]
-            windows = np.empty((0))
-            for window in dataframe.rolling(window=self.seq_len):
-                if(len(window) == self.seq_len):
-                    windows = np.append(windows,window)
-            return windows
-
-
-        test_data = np.empty(0)
-        for (lat,lon) in coordinates:
-            lat = round(lat,7)
-            lon = round(lon,7)
-            grid_cell = data[np.logical_and(data['lat'] == lat,data['lon'] == lon)]
-            rolling_window = getRollingWindow(grid_cell)
-            test_data = np.append(test_data,rolling_window)
-        self.data = test_data.reshape((-1,self.seq_len,len(MODEL_INPUT_VARIABLES) + len(MODEL_TARGET_VARIABLES)))
+    def __init__(self, data:np.ndarray,seq_len:int,num_features:int):
+        self.data = data.to_numpy().reshape(-1,seq_len,num_features)
     def __len__(self):
         return len(self.data)
 
@@ -83,51 +65,19 @@ class PositionalEncoding(nn.Module):
 
 
 
-class TestTransformer(nn.Module):
+class TimeSeriesTransformer(nn.Module):
 
-    """
-    This class implements a transformer model that can be used for times series
-    forecasting. This time series transformer model is based on the paper by
-    Wu et al (2020) [1]. The paper will be referred to as "the paper".
-
-    A detailed description of the code can be found in my article here:
-
-    https://towardsdatascience.com/how-to-make-a-pytorch-transformer-for-time-series-forecasting-69e073d4061e
-
-    In cases where the paper does not specify what value was used for a specific
-    configuration/hyperparameter, this class uses the values from Vaswani et al
-    (2017) [2] or from PyTorch source code.
-
-    Unlike the paper, this class assumes that input layers, positional encoding 
-    layers and linear mapping layers are separate from the encoder and decoder, 
-    i.e. the encoder and decoder only do what is depicted as their sub-layers 
-    in the paper. For practical purposes, this assumption does not make a 
-    difference - it merely means that the linear and positional encoding layers
-    are implemented inside the present class and not inside the 
-    Encoder() and Decoder() classes.
-
-    [1] Wu, N., Green, B., Ben, X., O'banion, S. (2020). 
-    'Deep Transformer Models for Time Series Forecasting: 
-    The Influenza Prevalence Case'. 
-    arXiv:2001.08317 [cs, stat] [Preprint]. 
-    Available at: http://arxiv.org/abs/2001.08317 (Accessed: 9 March 2022).
-
-    [2] Vaswani, A. et al. (2017) 
-    'Attention Is All You Need'.
-    arXiv:1706.03762 [cs] [Preprint]. 
-    Available at: http://arxiv.org/abs/1706.03762 (Accessed: 9 March 2022).
-
-    """
     def __init__(self, 
-        input_size: int,
-        dec_seq_len: int,
+        input_feature_size: int,
+        input_seq_len: int,
         batch_first: bool,
-        dim_val: int=128,  
-        n_encoder_layers: int=16,
-        n_heads: int=8,
-        dropout_encoder: float=0.2, 
-        dim_feedforward_encoder: int=512,
-        num_predicted_features: int=8
+        dim_val,  
+        n_encoder_layers,
+        n_heads,
+        dropout_encoder,
+        dropout_pos_enc,
+        dim_feedforward_encoder,
+        num_predicted_features
         ): 
 
         """
@@ -148,15 +98,11 @@ class TestTransformer(nn.Module):
 
             dropout_encoder: float, the dropout rate of the encoder
 
-            dropout_decoder: float, the dropout rate of the decoder
-
             dropout_pos_enc: float, the dropout rate of the positional encoder
 
             dim_feedforward_encoder: int, number of neurons in the linear layer 
                                      of the encoder
 
-            dim_feedforward_decoder: int, number of neurons in the linear layer 
-                                     of the decoder
 
             num_predicted_features: int, the number of features you want to predict.
                                     Most of the time, this will be 1 because we're
@@ -167,24 +113,16 @@ class TestTransformer(nn.Module):
 
         super().__init__() 
 
-        self.dec_seq_len = dec_seq_len
-        self.dim_val = dim_val
-        self.input_size = input_size
-        # print("input_size is: {}".format(input_size))
-        # print("dim_val is: {}".format(dim_val))
-
-        # Creating the three linear layers needed for the model
+        self.input_seq_len = input_seq_len
         self.encoder_input_layer = nn.Linear(
-            in_features=input_size, 
+            in_features=input_feature_size, 
             out_features=dim_val 
             )
 
-        # Create positional encoder
         self.positional_encoding_layer = PositionalEncoding(
-            d_model=dim_val)
+            d_model=dim_val,dropout=dropout_pos_enc)
 
-        # The encoder layer used in the paper is identical to the one used by
-        # Vaswani et al (2017) on which the PyTorch module is based.
+
         encoder_layer = nn.TransformerEncoderLayer(
             d_model=dim_val, 
             nhead=n_heads,
@@ -198,84 +136,33 @@ class TestTransformer(nn.Module):
             num_layers=n_encoder_layers            
         )
 
-        self.linear1 = torch.nn.Linear(self.dim_val,1)
-        # self.layernorm = torch.nn.LayerNorm(self.dec_seq_len)
-        self.linear2 = torch.nn.Linear(self.dec_seq_len,num_predicted_features)
+        self.linear1 = torch.nn.Linear(dim_val,1)
+        self.linear2 = torch.nn.Linear(self.input_seq_len,num_predicted_features)
 
 
 
-    def forward(self, src: Tensor, src_mask: Tensor=None, 
-                tgt_mask: Tensor=None) -> Tensor:
+    def forward(self, src: Tensor, src_mask: Tensor=None) -> Tensor:
         """
-        Returns a tensor of shape:
-
-        [target_sequence_length, batch_size, num_predicted_features]
+        Return [ batch_size,target_sequence_length, num_predicted_features]
         
         Args:
-
             src: the encoder's output sequence. Shape: (S,E) for unbatched input, 
                  (S, N, E) if batch_first=False or (N, S, E) if 
                  batch_first=True, where S is the source sequence length, 
                  N is the batch size, and E is the number of features (1 if univariate)
 
-            tgt: the sequence to the decoder. Shape: (T,E) for unbatched input, 
-                 (T, N, E)(T,N,E) if batch_first=False or (N, T, E) if 
-                 batch_first=True, where T is the target sequence length, 
-                 N is the batch size, and E is the number of features (1 if univariate)
-
             src_mask: the mask for the src sequence to prevent the model from 
                       using data points from the target sequence
 
-            tgt_mask: the mask for the tgt sequence to prevent the model from
-                      using data points from the target sequence
-
-
         """
-
-        # print("From model.forward(): Size of src as given to forward(): {}".format(src.size()))
-        # print('src input tensor', src)
-        # Pass throguh the input layer right before the encoder
-        src = self.encoder_input_layer(src) # src shape: [batch_size, src length, dim_val] regardless of number of input features
-        # print("From model.forward(): Size of src after input layer: {}".format(src.size()))
-        # print('src after encoding input layer', src)
-        # Pass through the positional encoding layer
-        src = self.positional_encoding_layer(src) # src shape: [batch_size, src length, dim_val] regardless of number of input features
-        # # print("From model.forward(): Size of src after pos_enc layer: {}".format(src.size()))
-        # print('src after positional ncoding', src)
-        # Pass through all the stacked encoder layers in the encoder
-        # Masking is only needed in the encoder if input sequences are padded
-        # which they are not in this time series use case, because all my
-        # input sequences are naturally of the same length. 
-        # (https://github.com/huggingface/transformers/issues/4083)
+        src = self.encoder_input_layer(src) 
+        src = self.positional_encoding_layer(src) 
         src = self.encoder(src,src_mask)           
-        # print('src after encoder layer: \n',src)
-        # print("From model.forward(): Size of src after encoder: {}".format(src.size()))
-        # output = self.decoder(src)
-        # print('after encoder',src)
         output = self.linear1(src)
-
-        output = output.reshape(-1,self.dec_seq_len)
-        # output = self.layernorm(output)
-
-        # print('after linear',output)
+        output = output.reshape(-1,self.input_seq_len)
         output = self.linear2(output)
-        # print('after linear reduction', output[0])
         return output
 
-
 def generate_square_subsequent_mask(dim1: int, dim2: int) -> Tensor:
-    """
-    Generates an upper-triangular matrix of -inf, with zeros on diag.
-    Source:
-    https://pytorch.org/tutorials/beginner/transformer_tutorial.html
-    Args:
-        dim1: int, for both src and tgt masking, this must be target sequence
-              length
-        dim2: int, for src masking this must be encoder sequence length (i.e. 
-              the length of the input sequence to the model), 
-              and for tgt masking, this must be target sequence length 
-    Return:
-        A Tensor of shape [dim1, dim2]
-    """
     return torch.triu(torch.ones(dim1, dim2) * float('-inf'), diagonal=1)
 
