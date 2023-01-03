@@ -4,20 +4,22 @@ import torch
 import math
 import pandas as pd
 import numpy as np
-from other.constants import MODEL_INPUT_VARIABLES,MODEL_TARGET_VARIABLES
+from omegaconf import DictConfig
 
 class CMIPTimeSeriesDataset(torch.utils.data.Dataset):
-    def __init__(self, data:np.ndarray,seq_len:int,num_features:int):
+    def __init__(self, data:np.ndarray,seq_len:int,num_features:int,cfg:DictConfig):
         self.data = data.to_numpy().reshape(-1,seq_len,num_features)
+        self.cfg = cfg
     def __len__(self):
         return len(self.data)
 
     def __getitem__(self, idx):
         if(idx > len(self.data) - 5):
             raise StopIteration
-        source = self.data[idx,:,:len(MODEL_INPUT_VARIABLES)]
-        target = self.data[idx,-1,-len(MODEL_TARGET_VARIABLES):]
-        return source,target
+        source = self.data[idx,:,:len(self.cfg.model.input)]
+        target = self.data[idx,-1,-(len(self.cfg.model.output)+len(self.cfg.model.id)):-len(self.cfg.model.id)]
+        id = self.data[idx,-1,-len(self.cfg.model.id):]
+        return source,target,id
 
 
 class PositionalEncoding(nn.Module):

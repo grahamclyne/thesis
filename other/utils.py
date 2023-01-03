@@ -7,11 +7,12 @@ import numpy as np
 import other.config as config
 import csv 
 import cftime
-import dask
+import pandas as pd 
 import geopandas
-def readCoordinates(file_name:str,is_grid_file:bool) -> list:
+
+def readCoordinates(file_path:str,is_grid_file:bool) -> list:
     coordinates = []
-    with open(f'{config.DATA_PATH}/{file_name}', newline='') as csvfile:
+    with open(f'{file_path}', newline='') as csvfile:
         spamreader = csv.reader(csvfile, delimiter=',')
         for row in spamreader:
             if(is_grid_file):
@@ -108,3 +109,12 @@ def seasonalAverages(netcdf_file:xr.Dataset, variable:str,shape_file:geopandas.G
     #remove null values
     # output = [np.expand_dims(x[~np.isnan(x)].compute_chunk_sizes(),axis=1) for x in output]
     return output
+
+
+def getRollingWindow(dataframe:pd.DataFrame,seq_len:int,inputs) -> pd.DataFrame:
+    dataframe = dataframe[inputs]
+    windows = pd.DataFrame()
+    for window in dataframe.rolling(window=seq_len):
+        if(len(window) == seq_len):
+            windows = pd.concat([windows,window])
+    return windows

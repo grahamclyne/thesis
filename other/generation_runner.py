@@ -8,7 +8,7 @@ if __name__ == '__main__':
     
     start_time = time.time()
 
-    managed_forest_coordinates = readCoordinates('managed_coordinates.csv',is_grid_file=False)
+    managed_forest_coordinates = readCoordinates(f'{cfg.path.data}/managed_coordinates.csv',is_grid_file=False)
     ordered_latitudes = readCoordinates('grid_latitudes.csv',is_grid_file=True)
     ordered_longitudes = readCoordinates('grid_longitudes.csv',is_grid_file=True)
 
