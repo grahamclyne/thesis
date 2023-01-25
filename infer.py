@@ -2,7 +2,7 @@ import pandas as pd
 
 from pickle import load
 import torch as T
-from transformer_no_decoder import TimeSeriesTransformer,CMIPTimeSeriesDataset
+from transformer_model import TimeSeriesTransformer,CMIPTimeSeriesDataset
 import hydra
 from omegaconf import DictConfig
 import numpy as np

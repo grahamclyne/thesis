@@ -1,7 +1,7 @@
 import torch as T
 import numpy as np 
 from tqdm import tqdm
-from transformer_no_decoder import TimeSeriesTransformer,generate_square_subsequent_mask,CMIPTimeSeriesDataset
+from transformer_model import TimeSeriesTransformer,generate_square_subsequent_mask,CMIPTimeSeriesDataset
 import wandb
 from omegaconf import DictConfig
 import hydra
@@ -15,11 +15,12 @@ import time
 
 @hydra.main(version_base=None, config_path="conf", config_name="config")
 def main(cfg: DictConfig):
-
+    
 
     #init variables
     wandb.init(project="transformer-land-carbon", entity="gclyne",config=cfg)
     T.set_printoptions(sci_mode=False)
+    T.set_num_threads(8)
     cesm_df = pd.read_csv(f'{cfg.path.data}/cesm_transformer_data.csv')
     #need to reshape here for data scaling
     # split data into 6 chunks, use 4 for training, 1 for validation, 1 for hold out
@@ -38,7 +39,6 @@ def main(cfg: DictConfig):
     train_ds = CMIPTimeSeriesDataset(train_ds,cfg.trans_params.input_seq_len,len(cfg.model.input + cfg.model.output + cfg.model.id),cfg)
     train,validation = T.utils.data.random_split(train_ds, [int((chunk_size/30)*4), int(chunk_size/30)], generator=T.Generator().manual_seed(0))
 
-    pickle.dump(scaler, open(f'trans_train_scaler.pkl','wb'))
 
 
     model = TimeSeriesTransformer(

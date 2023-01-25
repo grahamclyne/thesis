@@ -2,15 +2,22 @@ import pandas as pd
 from other.utils import getArea,getCoordinates,readCoordinates
 from functools import reduce
 from plotly import graph_objects as go
-from draft_nn import Net
 import other.config as config
 #to run: cwd to thesis, python -m visualization.harvest_visualization
-if __name__ == "__main__":
+import hydra
+from omegaconf import DictConfig
+
+def getYearlyDeforestation(cfg):
+    
+
+@hydra.main(version_base=None, config_path="../conf", config_name="ann_config")
+def main(cfg: DictConfig):
+
     harvest_df = pd.read_csv(f'{config.GENERATED_DATA}/nfis_harvest_data.csv',header=None)
     #the year columns are numbered 0,31
     harvest_df.columns = [x for x in range(0,33)] + ['year','lat','lon']
-    ordered_latitudes = readCoordinates('grid_latitudes.csv',is_grid_file=True)
-    ordered_longitudes = readCoordinates('grid_longitudes.csv',is_grid_file=True)
+    ordered_latitudes = readCoordinates(f'{cfg.path.data}/grid_latitudes.csv',is_grid_file=True)
+    ordered_longitudes = readCoordinates(f'{cfg.path.data}/grid_longitudes.csv',is_grid_file=True)
     total_harvested = 0
 
     #getting actual total_pixel size and "no_change" pixels, harvest data has 0's as no harvest which blend in with the cropped zeroes
@@ -77,3 +84,5 @@ if __name__ == "__main__":
     # fig.update_yaxes(title_text="hectares")
 
     # fig.show()
+
+main()
