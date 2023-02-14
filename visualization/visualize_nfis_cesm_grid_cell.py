@@ -7,7 +7,7 @@ from pyproj import Transformer, CRS
 import matplotlib.pyplot as plt
 from mpl_toolkits.basemap import Basemap
 
-from other.utils import scaleLongitudes
+from preprocessing.utils import scaleLongitudes
 
 
 nfis_tif = rioxarray.open_rasterio('/Users/gclyne/Downloads/CA_forest_VLCE2_1984/CA_forest_VLCE2_1984.tif',decode_coords='all')

@@ -1,0 +1,29 @@
+trans_params:  
+  epochs: 75
+  lr: 0.0001
+  batch_size: 512
+  dim_val: 512
+  input_seq_len: 30
+  num_encoder_layers: 4
+  num_heads: 16
+  dropout_encoder: 0.2
+  dropout_pos_enc: 0.1
+  dim_feedforward_encoder: 512
+  batch_first: True
+files:
+  raw_data: finalized_output.csv
+  test_data: finalized_output.csv
+  transformer_train_data: cesm_transformer_data.csv
+  output: observed_transformer_data.csv
+path:
+  project: '/Users/gclyne/thesis'
+  data: '/Users/gclyne/thesis/data'
+model:
+  # input: ['lai','tsl','mrsos','grassCropFrac','wetlandFrac','baresoilFrac','residualFrac','treeFrac','tas_DJF', 'tas_MAM', 'tas_JJA', 'tas_SON']
+  # input: ['evspsblsoi','ps','tsl','mrro','mrsos','grassCropFrac','wetlandFrac','baresoilFrac','residualFrac','treeFrac','pr','tas_DJF', 'tas_MAM', 'tas_JJA', 'tas_SON']
+  input: ['ps','tsl','mrro','mrsos','treeFrac','pr','tas_DJF', 'tas_MAM', 'tas_JJA', 'tas_SON']
+
+  # output: ['cSoil','cCwd','cVeg','cLitter','cLeaf','cRoot','cStem','cOther']
+  output: ['cSoilAbove1m','cLeaf','cStem','cOther']
+  id: ['# year','lat','lon']
+  transformer_model: transformer_model.pt

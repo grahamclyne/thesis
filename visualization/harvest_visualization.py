@@ -1,14 +1,12 @@
 import pandas as pd
-from other.utils import getArea,getCoordinates,readCoordinates
+from preprocessing.utils import getArea,getCoordinates,readCoordinates
 from functools import reduce
 from plotly import graph_objects as go
-import other.config as config
+import preprocessing.config as config
 #to run: cwd to thesis, python -m visualization.harvest_visualization
 import hydra
 from omegaconf import DictConfig
 
-def getYearlyDeforestation(cfg):
-    
 
 @hydra.main(version_base=None, config_path="../conf", config_name="ann_config")
 def main(cfg: DictConfig):
