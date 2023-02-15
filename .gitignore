@@ -4,6 +4,7 @@ data/
 outputs/
 images/
 checkpoint/
+tests/
 .DS_STORE
 # Byte-compiled / optimized / DLL files
 __pycache__/
