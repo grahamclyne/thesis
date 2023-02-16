@@ -22,13 +22,12 @@ def main(cfg: DictConfig):
     wandb.init(project="rnn-land-carbon", entity="gclyne",config=omegaconf.OmegaConf.to_container(cfg, resolve=True, throw_on_missing=True))
 
     from transformer.transformer_model import CMIPTimeSeriesDataset
-    cesm_df = pd.read_csv(f'{cfg.data}/cesm_transformer_data.csv')
-    # cesm_df = cesm_df[cesm_df['# year'] < 1985]
+    cesm_df = pd.read_csv(f'{cfg.data}/timeseries_cesm_training_data_30.csv')
     cesm_df.rename(columns={'# year':'year'},inplace=True)
     #need to reshape here for data scaling
     # split data into 6 chunks, use 4 for training, 1 for validation, 1 for hold out
     # chunk_size = len((np.array_split(cesm_df, 6, axis=0))[0])
-    chunk_size = len(cesm_df)//6
+    chunk_size = 3000
     cesm_df = cesm_df[cfg.model.input + cfg.model.output + cfg.model.id]
     cesm_df = cesm_df.to_numpy()
     cesm_df = cesm_df.reshape(-1,cfg.model.params.seq_len,len(cfg.model.input + cfg.model.output + cfg.model.id))
@@ -39,9 +38,8 @@ def main(cfg: DictConfig):
     cesm_df.columns = cfg.model.input + cfg.model.output + cfg.model.id
     print(cesm_df.head())
     hold_out = cesm_df[-chunk_size:]
-    train_ds = cesm_df[:chunk_size*5]
-    #CHUNK SIZE IS WRONG ---- keeps all northern latitudes for hold out and rest for train ds, need to shuffle
-    print(cesm_df.columns)
+    train_ds = cesm_df[:-chunk_size]
+    print(train_ds)    
     #fix that you are modifying targets here too
     scaler = preprocessing.StandardScaler().fit(train_ds.loc[:,cfg.model.input])
     out_scaler = preprocessing.StandardScaler().fit(train_ds.loc[:,cfg.model.output])
@@ -57,7 +55,8 @@ def main(cfg: DictConfig):
     dump(out_scaler, open(f'{cfg.environment.path.checkpoint}/lstm_output_scaler.pkl','wb'))
     hold_out = CMIPTimeSeriesDataset(hold_out,cfg.model.params.seq_len,len(cfg.model.input + cfg.model.output + cfg.model.id),cfg)
     train_ds = CMIPTimeSeriesDataset(train_ds,cfg.model.params.seq_len,len(cfg.model.input + cfg.model.output + cfg.model.id),cfg)
-    train,validation = torch.utils.data.random_split(train_ds, [int((chunk_size/cfg.model.params.seq_len)*4), int(chunk_size/cfg.model.params.seq_len)], generator=torch.Generator().manual_seed(0))
+    # train,validation = torch.utils.data.random_split(train_ds, [int((chunk_size/cfg.model.params.seq_len)*4), int(chunk_size/cfg.model.params.seq_len)], generator=torch.Generator().manual_seed(0))
+    train,validation = torch.utils.data.random_split(train_ds, [0.8,0.2], generator=torch.Generator().manual_seed(0))
 
     train_ldr = torch.utils.data.DataLoader(train,batch_size=cfg.model.params.batch_size,shuffle=True)
     validation_ldr = torch.utils.data.DataLoader(validation,batch_size=cfg.model.params.batch_size,shuffle=True)
@@ -107,8 +106,5 @@ def main(cfg: DictConfig):
             epoch_time = time.time() - total_start
             wandb.log({'epoch time':epoch_time})
 
-    torch.save({
-        'model_state_dict': model.state_dict(),
-        'optimizer_state_dict': optimizer.state_dict(),
-        }, f'{cfg.environment.path.checkpoint}/lstm_checkpoint.pt')
+            torch.save({'model_state_dict': model.state_dict(),'optimizer_state_dict': optimizer.state_dict(),}, f'{cfg.environment.path.checkpoint}/lstm_checkpoint.pt')
 main()

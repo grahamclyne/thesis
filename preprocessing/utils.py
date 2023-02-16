@@ -59,14 +59,15 @@ def find_nearest_index(array, value):
     return int(idx)
 
 
-def getCoordinates(lat:float,lon,cfg):
+def getCoordinates(lat:float,lon):
     latitudes = []
     longitudes = []
-    with open(f'{cfg.path.data}/grid_latitudes.csv',newline='') as csvfile:
+    path = '/Users/gclyne/thesis/data'
+    with open(f'{path}/grid_latitudes.csv',newline='') as csvfile:
         reader = csv.reader(csvfile,delimiter=',')
         for row in reader:
             latitudes.append(float(row[0]))
-    with open(f'{cfg.path.data}/grid_longitudes.csv',newline='') as csvfile:
+    with open(f'{path}/grid_longitudes.csv',newline='') as csvfile:
         reader = csv.reader(csvfile,delimiter=',')
         for row in reader:
             longitudes.append(float(row[0]))
@@ -74,9 +75,9 @@ def getCoordinates(lat:float,lon,cfg):
     next_lon = longitudes[find_nearest_index(longitudes,lon) + 1]
     return next_lat,next_lon
 
-def getArea(lat,lon,cfg) -> float:
+def getArea(lat,lon) -> float:
     #returns metre squared
-    next_lat,next_lon = getCoordinates(lat,lon,cfg)
+    next_lat,next_lon = getCoordinates(lat,lon)
     poly = Polygon([(lon,next_lat),(lon,lat),(next_lon,lat),(next_lon,next_lat)])
     #put in counterclockwise rotation otherwise does not work
     geod = Geod(ellps="WGS84") #assume ellipsoid here
