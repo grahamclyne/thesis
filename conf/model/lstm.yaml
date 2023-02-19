@@ -11,7 +11,7 @@ input: ['tsl','ps','pr','mrro','mrsos','wetlandFrac','baresoilFrac','residualFra
   #input: ['ps','treeFrac','tas_DJF', 'tas_MAM', 'tas_JJA', 'tas_SON','pr']
   #input: ['treeFrac','tas_DJF','tas_JJA']
   # output: ['cSoil','cCwd','cVeg','cLitter','cLeaf','cRoot','cStem','cOther','cSoilAbove1m']
-output: ['cLeaf','cStem','cOther','cSoilAbove1m',çVeg','nppWood','nppRoot','nppLeaf']
+output: ['cSoilAbove1m','nppWood','nppRoot','nppLeaf']
   #only for cSoil
   # input: ['evspsblsoi','mrro','mrsos','treeFrac']
   # output: ['cSoilAbove1m']
