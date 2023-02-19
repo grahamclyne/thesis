@@ -22,25 +22,28 @@ from sklearn.preprocessing import StandardScaler
 def infer_lstm(data,cfg):
 
     final_input = data[cfg.model.input + cfg.model.output + cfg.model.id]
-    # scaler = load(open(f'{cfg.project}/checkpoint/lstm_scaler.pkl', 'rb'))
+    scaler = load(open(f'{cfg.project}/checkpoint/lstm_scaler.pkl', 'rb'))
     # out_scaler = load(open(f'{cfg.project}/checkpoint/lstm_output_scaler.pkl', 'rb'))
-    final_input.loc[:,cfg.model.input] = StandardScaler().fit_transform(final_input.loc[:,cfg.model.input])
-    hold_out_out_scaler = StandardScaler().fit(final_input[29::30].loc[:,cfg.model.output])
-    print(final_input.loc[:,cfg.model.output])
+    final_input.loc[:,cfg.model.input] =scaler.transform(final_input.loc[:,cfg.model.input])
+
+    # final_input[cfg.model.input]=final_input[cfg.model.input].apply(scaler.transform)
+
+    # hold_out_out_scaler = StandardScaler().fit(final_input[29::30].loc[:,cfg.model.output])
+    print(final_input.loc[:,cfg.model.input])
     model = RegressionLSTM(num_sensors=len(cfg.model.input), hidden_units=cfg.model.params.hidden_units,cfg=cfg)
     checkpoint = T.load(f'{cfg.project}/checkpoint/lstm_checkpoint.pt')
     model.load_state_dict(checkpoint['model_state_dict'])
-    final_input = data[cfg.model.input + cfg.model.id]
+    final_input = final_input[cfg.model.input + cfg.model.id]
+    print(final_input)
     ds = CMIPTimeSeriesDataset(final_input,cfg.model.params.seq_len,len(cfg.model.input) + len(cfg.model.id),cfg)
     batch_size = 1
     ldr = T.utils.data.DataLoader(ds,batch_size=batch_size,shuffle=False)
     results = []
     ids = []
     model.eval()
-    print(len(ds))
     for X,tgt,id in ldr:
         y = model(X.float())
-        y = hold_out_out_scaler.inverse_transform(y.detach().numpy())
+        y = (y.detach().numpy())
         results.extend(y)
         ids.append(id.detach().numpy())
         # print(id)
@@ -49,7 +52,6 @@ def infer_lstm(data,cfg):
     results_df['year'] = ids[:,0]
     results_df['lat'] = ids[:,1]
     results_df['lon'] = ids[:,2]
-    # results_df['treeFrac'] = scaler.invers_transform(final_input[29::30].groupby('year').sum()['treeFrac'])
     results_df.columns = cfg.model.output + ['year','lat','lon']
     print('results_df',results_df)   
     return results_df
@@ -61,13 +63,13 @@ def main(cfg: DictConfig):
     cesm_data.rename(columns={'# year':'year'},inplace=True)
 
     cesm_data = cesm_data[cfg.model.input + cfg.model.output + cfg.model.id]
-
+    # cesm_data = cesm_data.where(cesm_data['year'] > 1984).dropna()
     # cesm_data = cesm_data.iloc[0:300]
 
     # cesm_data = cesm_data[cesm_data['year'] == 2014]
     # reforested_input = pd.read_csv('data/observed_reforest_ts.csv')
     # cesm_data = cesm_data.where(cesm_data['year'] > 1980).dropna()
-    # cesm_data = cesm_data.assign(lat=round(cesm_data['lat'],6))
+    cesm_data = cesm_data.assign(lat=round(cesm_data['lat'],6))
     #get only columns with fin_year of 2014
     # x = cesm_data['year'][29::30].reset_index()
     # x['index'] = x['index'] - 29
@@ -78,31 +80,27 @@ def main(cfg: DictConfig):
     # cesm_data = cesm_data.groupby(['year','lat','lon']).mean().reset_index()
     # cesm_data = cesm_data[cesm_data.lat != 42.879582]
     	# 68.324608	-136.25
-    # observed_input = pd.read_csv(cfg.environment.path.observed_input)
+    observed_input = pd.read_csv(cfg.environment.path.observed_input)
 
-    # # observed_input.fillna(observed_input.median(),inplace=True)
-    # # observed_input = observed_input.where((observed_input['year'] > 1984) & (observed_input['year'] < 2015)).dropna()
-    # observed_input = observed_input[['year','lat','lon','treeFrac']]
+    # observed_input.fillna(observed_input.median(),inplace=True)
+    observed_input = observed_input.where((observed_input['year'] > 1984) & (observed_input['year'] < 2015)).dropna()
+    observed_input = observed_input[['year','lat','lon','treeFrac']]
 
-    # reforested_input = pd.read_csv(cfg.environment.path.reforested_input)
-    # # reforested_input.rename(columns={'year_y':'year'},inplace=True)
+    reforested_input = pd.read_csv(cfg.environment.path.reforested_input)
     # reforested_input['lat'] = round(reforested_input['lat'],6)
     # observed_input['lat'] = round(observed_input['lat'],6)
     # reforested_input.fillna(reforested_input.median(),inplace=True)
-    # reforested_input = reforested_input.where((reforested_input['year'] > 1984) & (reforested_input['year'] < 2015)).dropna()
-    # reforested_input = reforested_input[['year','lat','lon','treeFrac']]
-    # df_merged = pd.merge(cesm_data,observed_input,on=['year','lat','lon'],how='left')
-    # reforested_merged = pd.merge(cesm_data.copy(),reforested_input,on=['year','lat','lon'],how='left')
+    reforested_input = reforested_input.where((reforested_input['year'] > 1984) & (reforested_input['year'] < 2015)).dropna()
+    reforested_input = reforested_input[['year','lat','lon','treeFrac']]
+    df_merged = pd.merge(cesm_data,observed_input,on=['year','lat','lon'],how='left')
+    reforested_merged = pd.merge(cesm_data,reforested_input,on=['year','lat','lon'],how='left')
 
-    # df_merged = df_merged.drop(columns=['treeFrac_x'])
-    # df_merged = df_merged.rename(columns={'treeFrac_y':'treeFrac'})
-    # reforested_merged = reforested_merged.drop(columns=['treeFrac_x'])
-    # reforested_merged = reforested_merged.rename(columns={'treeFrac_y':'treeFrac'})
-    # df_merged.fillna(df_merged.median(),inplace=True)
-    # reforested_merged.fillna(reforested_merged.median(),inplace=True)
-    # pd.set_option('display.max_columns', None)
-    # print(df_merged[29::30].groupby(['year','lat','lon']).sum().reset_index().describe())
-    # print(cesm_data.describe())
+    df_merged = df_merged.drop(columns=['treeFrac_x'])
+    df_merged = df_merged.rename(columns={'treeFrac_y':'treeFrac'})
+    reforested_merged = reforested_merged.drop(columns=['treeFrac_x'])
+    reforested_merged = reforested_merged.rename(columns={'treeFrac_y':'treeFrac'})
+    df_merged.interpolate(method='spline',order=5,inplace=True)
+    reforested_merged.interpolate(method='spline',order=5,inplace=True)
 
 
 
@@ -116,46 +114,47 @@ def main(cfg: DictConfig):
 
 
 
-    no_reforest_infer = infer_lstm(cesm_data,cfg)
+
+    no_reforest_infer = infer_lstm(df_merged,cfg)
     no_reforest_infer.to_csv('data/lstm_hybrid_no_reforest.csv')
-    # reforest_infer = infer_lstm(reforested_merged,cfg)
-    # reforest_infer.to_csv('data/lstm_hybrid_reforest.csv')
+    reforest_infer = infer_lstm(reforested_merged,cfg)
+    reforest_infer.to_csv('data/lstm_hybrid_reforest.csv')
     cesm_data = cesm_data[29::30].groupby(['year','lat','lon']).sum().reset_index()
 
 
 
-    cesm_data = cesm_data[~((cesm_data.lat == 68.324608) & (cesm_data.lon == -136.25))]
+    # cesm_data = cesm_data[~((cesm_data.lat == 68.324608) & (cesm_data.lon == -136.25))]
 
 
 
-
+    pd.set_option('display.max_columns', None)
     print(cesm_data.describe())
     print(no_reforest_infer.describe())
 
 
-    # print(len(reforest_infer))
-    print(len(no_reforest_infer))
-    print(len(cesm_data))
+
     #plot results
-    # reforest_infer['agb'] = reforest_infer['cStem'] + reforest_infer['cLeaf'] + reforest_infer['cOther']
+    reforest_infer['agb'] = reforest_infer['cStem'] + reforest_infer['cLeaf'] + reforest_infer['cOther']
     cesm_data['agb'] = cesm_data['cStem'] + cesm_data['cLeaf'] + cesm_data['cOther']
     no_reforest_infer['agb'] = no_reforest_infer['cStem'] + no_reforest_infer['cLeaf'] + no_reforest_infer['cOther']
 
-    # reforest_infer['area'] = reforest_infer.apply(lambda x: getArea(x['lat'],x['lon']),axis=1)
+    reforest_infer['area'] = reforest_infer.apply(lambda x: getArea(x['lat'],x['lon']),axis=1)
     cesm_data['area'] = cesm_data.apply(lambda x: getArea(x['lat'],x['lon']),axis=1)
     no_reforest_infer['area'] = no_reforest_infer.apply(lambda x: getArea(x['lat'],x['lon']),axis=1)
 
-    # reforest_infer['agb'] = reforest_infer['agb'] * reforest_infer['area'] / 1e9 #to megatonnes
+    reforest_infer['agb'] = reforest_infer['agb'] * reforest_infer['area'] / 1e9 #to megatonnes
     cesm_data['agb'] = cesm_data['agb'] * cesm_data['area'] / 1e9 # kg to megatonnes
     no_reforest_infer['agb'] = no_reforest_infer['agb'] * no_reforest_infer['area'] / 1e9 # kg to megatonnes
 
 
     fig, ax = plt.subplots()
     ax.plot(cesm_data.groupby('year')['agb'].sum(),label='CESM')
-    # ax.plot(reforest_infer.groupby('year')['agb'].sum(),label='Reforestation')
+    ax.plot(reforest_infer.groupby('year')['agb'].sum(),label='Reforestation')
     ax.plot(no_reforest_infer.groupby('year')['agb'].sum(),label='No Reforestation')
     ax.legend()
     ax.title.set_text('Canada AGB')
+    # ax.axhline(0, color='black', linewidth=.5)
+
     fig.savefig('agb_lstm.png')
 
 
@@ -163,20 +162,26 @@ def main(cfg: DictConfig):
     fig, ax = plt.subplots()
     ax.set_ylabel('Tree Cover %')
     ax.plot(cesm_data.groupby('year')['treeFrac'].mean(),label='CESM')
-    # ax.plot(reforested_merged.groupby('year')['treeFrac'].mean(),label='Reforestation')
-    # ax.plot(df_merged.groupby('year')['treeFrac'].mean(),label='No Reforestation')
+    ax.plot(reforested_merged.groupby('year')['treeFrac'].mean(),label='Reforestation')
+    ax.plot(df_merged.groupby('year')['treeFrac'].mean(),label='No Reforestation')
     ax.title.set_text('Canada Tree Cover')
     ax.legend()
+    # ax.axhline(0, color='black', linewidth=.5)
+
     fig.savefig('lstm_tree_frac.png')
 
 
+    import seaborn
+    seaborn.set(style='ticks')
 
     fig, ax = plt.subplots()
     ax.set_ylabel('soil 1m')
     ax.plot(cesm_data.groupby('year')['cSoilAbove1m'].sum(),label='CESM')
-    # ax.plot(reforest_infer.groupby('year')['cSoilAbove1m'].sum(),label='Reforestation')
+    ax.plot(reforest_infer.groupby('year')['cSoilAbove1m'].sum(),label='Reforestation')
     ax.plot(no_reforest_infer.groupby('year')['cSoilAbove1m'].sum(),label='No Reforestation')
     ax.title.set_text('Canada Tree Cover')
     ax.legend()
+    # ax.axhline(0, color='black', linewidth=.5)
+
     fig.savefig('lstm_soil.png')
 main()
