@@ -42,12 +42,13 @@ def main(cfg: DictConfig):
     print(train_ds)    
     #fix that you are modifying targets here too
     scaler = preprocessing.StandardScaler().fit(train_ds.loc[:,cfg.model.input])
-    out_scaler = preprocessing.StandardScaler().fit(train_ds.loc[:,cfg.model.output])
+    hold_out_scaler = preprocessing.StandardScaler().fit(hold_out.loc[:,cfg.model.input])
     train_ds.loc[:,cfg.model.input] = scaler.transform(train_ds.loc[:,cfg.model.input])
-    train_ds.loc[:,cfg.model.output] = out_scaler.transform(train_ds.loc[:,cfg.model.output])
+    # train_ds.loc[:,cfg.model.output] = out_scaler.transform(train_ds.loc[:,cfg.model.output])
+    hold_out.loc[:,cfg.model.input] = scaler.transform(hold_out.loc[:,cfg.model.input])
 
     dump(scaler, open(f'{cfg.environment.path.checkpoint}/lstm_scaler.pkl','wb'))
-    dump(out_scaler, open(f'{cfg.environment.path.checkpoint}/lstm_output_scaler.pkl','wb'))
+    dump(hold_out_scaler, open(f'{cfg.environment.path.checkpoint}/lstm_hold_out_scaler.pkl','wb'))
     hold_out = CMIPTimeSeriesDataset(hold_out,cfg.model.params.seq_len,len(cfg.model.input + cfg.model.output + cfg.model.id),cfg)
     train_ds = CMIPTimeSeriesDataset(train_ds,cfg.model.params.seq_len,len(cfg.model.input + cfg.model.output + cfg.model.id),cfg)
     train,validation = torch.utils.data.random_split(train_ds, [0.8,0.2], generator=torch.Generator().manual_seed(0))
