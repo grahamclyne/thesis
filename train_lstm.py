@@ -27,7 +27,7 @@ def main(cfg: DictConfig):
     #need to reshape here for data scaling
     # split data into 6 chunks, use 4 for training, 1 for validation, 1 for hold out
     # chunk_size = len((np.array_split(cesm_df, 6, axis=0))[0])
-    chunk_size = 3000
+    chunk_size = 12000
     cesm_df = cesm_df[cfg.model.input + cfg.model.output + cfg.model.id]
     cesm_df = cesm_df.to_numpy()
     cesm_df = cesm_df.reshape(-1,cfg.model.params.seq_len,len(cfg.model.input + cfg.model.output + cfg.model.id))
@@ -43,19 +43,13 @@ def main(cfg: DictConfig):
     #fix that you are modifying targets here too
     scaler = preprocessing.StandardScaler().fit(train_ds.loc[:,cfg.model.input])
     out_scaler = preprocessing.StandardScaler().fit(train_ds.loc[:,cfg.model.output])
-    hold_out_scaler = preprocessing.StandardScaler().fit(hold_out.loc[:,cfg.model.input])
-    hold_out_out_scaler = preprocessing.StandardScaler().fit(hold_out.loc[:,cfg.model.output])
-
-    hold_out.loc[:,cfg.model.input] = hold_out_scaler.transform(hold_out.loc[:,cfg.model.input])
     train_ds.loc[:,cfg.model.input] = scaler.transform(train_ds.loc[:,cfg.model.input])
-    hold_out.loc[:,cfg.model.output] = hold_out_out_scaler.transform(hold_out.loc[:,cfg.model.output])
     train_ds.loc[:,cfg.model.output] = out_scaler.transform(train_ds.loc[:,cfg.model.output])
 
     dump(scaler, open(f'{cfg.environment.path.checkpoint}/lstm_scaler.pkl','wb'))
     dump(out_scaler, open(f'{cfg.environment.path.checkpoint}/lstm_output_scaler.pkl','wb'))
     hold_out = CMIPTimeSeriesDataset(hold_out,cfg.model.params.seq_len,len(cfg.model.input + cfg.model.output + cfg.model.id),cfg)
     train_ds = CMIPTimeSeriesDataset(train_ds,cfg.model.params.seq_len,len(cfg.model.input + cfg.model.output + cfg.model.id),cfg)
-    # train,validation = torch.utils.data.random_split(train_ds, [int((chunk_size/cfg.model.params.seq_len)*4), int(chunk_size/cfg.model.params.seq_len)], generator=torch.Generator().manual_seed(0))
     train,validation = torch.utils.data.random_split(train_ds, [0.8,0.2], generator=torch.Generator().manual_seed(0))
 
     train_ldr = torch.utils.data.DataLoader(train,batch_size=cfg.model.params.batch_size,shuffle=True)
@@ -101,8 +95,8 @@ def main(cfg: DictConfig):
                 total_targets.append(tgt.detach().numpy())
                 wandb.log({"hold_out_loss": loss})
                 print(id[0])
-                print(hold_out_out_scaler.inverse_transform(pred_y.detach().numpy())[0])
-                print(hold_out_out_scaler.inverse_transform(tgt.detach().numpy())[0])
+                print(pred_y.detach().numpy()[0])
+                print(tgt.detach().numpy()[0])
             epoch_time = time.time() - total_start
             wandb.log({'epoch time':epoch_time})
 

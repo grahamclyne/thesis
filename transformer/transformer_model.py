@@ -14,8 +14,8 @@ class CMIPTimeSeriesDataset(torch.utils.data.Dataset):
         return len(self.data)
 
     def __getitem__(self, idx):
-        if(idx > len(self.data) - 5):
-            raise StopIteration
+        # if(idx > len(self.data) - 5):
+        #     raise StopIteration
         source = self.data[idx,:,:len(self.cfg.model.input)]
         target = self.data[idx,-1,-(len(self.cfg.model.output)+len(self.cfg.model.id)):-len(self.cfg.model.id)]
         id = self.data[idx,-1,-len(self.cfg.model.id):]

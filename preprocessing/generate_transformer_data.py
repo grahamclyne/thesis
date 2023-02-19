@@ -7,6 +7,7 @@ import numpy as np
     
 @hydra.main(version_base=None, config_path="../conf", config_name="config")
 def main(cfg: DictConfig):
+    print(cfg)
     cesm_data = pd.read_csv(f'{cfg.data}/cesm_data_variant.csv')
     # if('variant' in cfg.files.raw_data):
     cols = cesm_data.columns.append(pd.Index(['variant']))
@@ -14,8 +15,9 @@ def main(cfg: DictConfig):
     cesm_data.columns = cols
     inputs = cfg.model.input + cfg.model.output + ['# year','lat','lon']
     cesm_data = cesm_data[inputs]
-    cesm_data = cesm_data[cesm_data['# year'] < 1980]
     hold_out = cesm_data[cesm_data['# year'] >= 1980]
+    hold_out = hold_out.groupby(['# year','lat','lon']).mean().reset_index()
+    cesm_data = cesm_data[cesm_data['# year'] < 1980]
     managed_forest_coordinates = readCoordinates(f'{cfg.data}/managed_coordinates.csv',is_grid_file=False)
     seq_len = cfg.model.params.seq_len
 

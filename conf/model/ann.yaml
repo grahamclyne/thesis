@@ -2,30 +2,16 @@ params:
   epochs: 300
   lr: 0.0001
   batch_size: 1024
-files:
-  raw_data: finalized_output.csv
-  test_data: finalized_output.csv
-path:
-  project: '/Users/gclyne/thesis'
-  data: '/Users/gclyne/thesis/data'
-  cesm: '/Users/gclyne/thesis/data/CESM'
-  observed_input: '/Users/gclyne/thesis/data/cleaned_observed_ann_input.csv'
-  reforested_input: '/Users/gclyne/thesis/data/total_reforestation.csv'
-  reforested_estimates: '/Users/gclyne/thesis/data/reforested_carbon_predictions.csv'
-  observed_estimates: '/Users/gclyne/thesis/data/observed_carbon_predictions.csv'
-  nfis_harvest_data: '/Users/gclyne/thesis/data/generated_data/nfis_harvest_data.csv'
-  canada_shapefile: '/Users/gclyne/thesis/data/shapefiles/lpr_000b21a_e/lpr_000b21a_e.shp'
-  shapefiles: '/Users/gclyne/thesis/data/shapefiles'
-model:
-  input: ['evspsblsoi', 'tsl','ps','pr','mrro','mrsos','grassCropFrac','wetlandFrac','baresoilFrac','residualFrac','treeFrac','tas_DJF', 'tas_MAM', 'tas_JJA', 'tas_SON']
-  # input: ['evspsblsoi','ps','tsl','mrro','mrsos','treeFrac','pr','tas_DJF', 'tas_MAM', 'tas_JJA', 'tas_SON']
-  #input: ['ps','treeFrac','tas_DJF', 'tas_MAM', 'tas_JJA', 'tas_SON','pr']
-  #input: ['treeFrac','tas_DJF','tas_JJA']
-  # output: ['cSoil','cCwd','cVeg','cLitter','cLeaf','cRoot','cStem','cOther','cSoilAbove1m']
-  output: ['cLeaf','cStem','cOther','cSoilAbove1m']
-  #only for cSoil
-  # input: ['evspsblsoi','mrro','mrsos','treeFrac']
-  # output: ['cSoilAbove1m']
-  id: ['year','lat','lon']
+
+input: ['evspsblsoi', 'tsl','ps','pr','mrro','mrsos','grassCropFrac','wetlandFrac','baresoilFrac','residualFrac','treeFrac','tas_DJF', 'tas_MAM', 'tas_JJA', 'tas_SON']
+# input: ['evspsblsoi','ps','tsl','mrro','mrsos','treeFrac','pr','tas_DJF', 'tas_MAM', 'tas_JJA', 'tas_SON']
+#input: ['ps','treeFrac','tas_DJF', 'tas_MAM', 'tas_JJA', 'tas_SON','pr']
+#input: ['treeFrac','tas_DJF','tas_JJA']
+# output: ['cSoil','cCwd','cVeg','cLitter','cLeaf','cRoot','cStem','cOther','cSoilAbove1m']
+output: ['cLeaf','cStem','cOther','cSoilAbove1m']
+#only for cSoil
+# input: ['evspsblsoi','mrro','mrsos','treeFrac']
+# output: ['cSoilAbove1m']
+id: ['year','lat','lon']
 preprocess: 
   raw_cmip_variables: ['rMaint','rGrowth','nppWood','nppRoot','nppLeaf','cSoilAbove1m','cOther','cCwd','cVeg','cLitter','cLeaf','cRoot','evspsblsoi','lai','tsl','mrro','mrsos','grassFrac','shrubFrac','cropFrac','baresoilFrac','residualFrac','treeFrac','shrubFrac','cSoil','cStem','wetlandFrac','ps','pr','tas']

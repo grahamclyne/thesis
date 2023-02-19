@@ -6,8 +6,8 @@ params:
   hidden_units: 256
   seq_len: 30
   
-input: ['evspsblsoi', 'tsl','ps','pr','mrro','mrsos','grassCropFrac','wetlandFrac','baresoilFrac','residualFrac','treeFrac','tas_DJF', 'tas_MAM', 'tas_JJA', 'tas_SON']
-  # input: ['evspsblsoi','ps','tsl','mrro','mrsos','treeFrac','pr','tas_DJF', 'tas_MAM', 'tas_JJA', 'tas_SON']
+# input: ['tsl','ps','pr','mrro','mrsos','wetlandFrac','baresoilFrac','residualFrac','treeFrac','tas_DJF', 'tas_MAM', 'tas_JJA', 'tas_SON']
+input: ['evspsblsoi','ps','tsl','mrro','mrsos','treeFrac','pr','tas_DJF', 'tas_MAM', 'tas_JJA', 'tas_SON']
   #input: ['ps','treeFrac','tas_DJF', 'tas_MAM', 'tas_JJA', 'tas_SON','pr']
   #input: ['treeFrac','tas_DJF','tas_JJA']
   # output: ['cSoil','cCwd','cVeg','cLitter','cLeaf','cRoot','cStem','cOther','cSoilAbove1m']

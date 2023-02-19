@@ -1,6 +1,7 @@
-# defaults:
-#   - model/ann
-#   - environment/lab
+defaults:
+  - model: ann
+  - environment: lab
+  - _self_
 
 project: '/Users/gclyne/thesis'
 data: '/Users/gclyne/thesis/data'

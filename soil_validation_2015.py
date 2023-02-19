@@ -17,7 +17,7 @@ from preprocessing.utils import scaleLongitudes
 
 
 #get soil data to compare
-soil_df = rioxarray.open_rasterio('/Users/gclyne/Downloads/McMaster_WWFCanada_soil_carbon1m_250m/McMaster_WWFCanada_soil_carbon1m_250m_kg-m2_version1.0.tif')
+soil_df = rioxarray.open_rasterio('/Users/gclyne/thesis/McMaster_WWFCanada_soil_carbon1m_250m/McMaster_WWFCanada_soil_carbon1m_250m_kg-m2_version1.0.tif')
 ref_df = xarray.open_dataset('/Users/gclyne/thesis/data/cesm/cSoilAbove1m_Emon_CESM2_historical_r1i1p1f1_gn_185001-201412.nc')
 ref_df = ref_df.rio.set_crs('epsg:4326')
 soil_df = soil_df.rio.reproject_match(ref_df)

@@ -1,7 +1,7 @@
 path:
   cesm: '${project}/data/CESM'
   checkpoint: '${project}/checkpoint'
-  observed_input: '${data}/leaned_observed_ann_input.csv'
+  observed_input: '${data}/cleaned_observed_ann_input.csv'
   reforested_input: '${data}/total_reforestation.csv'
   reforested_estimates: '${data}/reforested_carbon_predictions.csv'
   observed_estimates: '${data}/observed_carbon_predictions.csv'
