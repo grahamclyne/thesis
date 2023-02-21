@@ -1,11 +1,11 @@
 import os
 import preprocessing.config as config
-CMIP_VARIABLES = {'Lmon':['nppRoot','nppWood','nppLeaf','rGrowth','rMaint','treeFracSecEver','treeFracSecDec','treeFracPrimEver','treeFracPrimDec','landCoverFrac']}
+CMIP_VARIABLES = {'Emon':['nppStem','nppOther']}
 
 from hydra import initialize, compose
 
 with initialize(version_base=None, config_path="../conf"):
-    cfg = compose(config_name="ann_config")
+    cfg = compose(config_name="config")
 
 
 for table in CMIP_VARIABLES:
@@ -21,10 +21,10 @@ for table in CMIP_VARIABLES:
             wget_string = f'wget http://esgf-node.llnl.gov/esg-search/wget\?project=CMIP6\&experiment_id={CMIP_EXPERIMENT}\&source_id={CMIP_SOURCE}\&variant_label={CMIP_VARIANT}\&table_id={CMIP_TABLE}\&variable_id={CMIP_VARIABLE}'
 
             print(table,var,wget_string)
-            os.system(wget_string + f' -O {cfg.path.cesm}/wget_{CMIP_VARIABLE}.txt')
+            os.system(wget_string + f' -O {cfg.environment.path.cesm}/wget_{CMIP_VARIABLE}.txt')
 
 
-            os.system(f'chmod +x {cfg.path.cesm}/wget_{CMIP_VARIABLE}.txt')
+            os.system(f'chmod +x {cfg.environment.path.cesm}/wget_{CMIP_VARIABLE}.txt')
 
-            os.system(f'sh {cfg.path.cesm}/wget_{CMIP_VARIABLE}.txt -s')
+            os.system(f'sh {cfg.environment.path.cesm}/wget_{CMIP_VARIABLE}.txt -s')
             # os.system(f'rm {config.CESM_PATH}/wget*.txt')

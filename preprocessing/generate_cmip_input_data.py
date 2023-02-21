@@ -3,13 +3,13 @@ import time
 import geopandas
 import numpy as np
 import pandas as pd
-from preprocessing.utils import scaleLongitudes, seasonalAverages,clipWithShapeFile
+from preprocessing.utils import scaleLongitudes, seasonalAverages,clipWithShapeFile,getArea
 
 import hydra
 from omegaconf import DictConfig
 
 def netcdfToNumpy(netcdf_file,variable,shape_file,getUniqueKey):
-    netcdf_file = scaleLongitudes(netcdf_file, 'lon')
+    netcdf_file = scaleLongitudes(netcdf_file)
     netcdf_file = netcdf_file.groupby('time.year').mean()
     clipped = clipWithShapeFile(netcdf_file,variable,shape_file)
     df = clipped.to_dataframe().reset_index()
@@ -20,14 +20,14 @@ def netcdfToNumpy(netcdf_file,variable,shape_file,getUniqueKey):
 
 
 def CESMVariables(variant,cfg):
-    shape_file = geopandas.read_file(f'{cfg.path.shapefiles}/NIR2016_MF.shp', crs="epsg:4326")
+    shape_file = geopandas.read_file(f'{cfg.environment.path.shapefiles}/NIR2016_MF.shp', crs="epsg:4326")
     out = []
-    header = cfg.preprocess.raw_cmip_variables
+    header = cfg.model.raw_cmip_variables
     getYearLatLon = True
     #replace tas with seasons
     header = header[:header.index('tas')] + ['tas_DJF','tas_JJA','tas_MAM','tas_SON'] + header[header.index('tas')+1:]     
-    for var in cfg.preprocess.raw_cmip_variables:
-        ds = xr.open_mfdataset(f'{cfg.path.cesm}/{var}*r{variant}i1p1f1*.nc',parallel=True)
+    for var in cfg.model.raw_cmip_variables:
+        ds = xr.open_mfdataset(f'{cfg.environment.path.cesm}/{var}*r{variant}i1p1f1*.nc',parallel=True)
         if(var == 'tas'):
             out.extend(seasonalAverages(ds,var,shape_file,'CESM'))
         else:
@@ -49,7 +49,7 @@ def transformData(array,header):
     return df,df.columns     
 
 
-@hydra.main(version_base=None, config_path="../conf", config_name="ann_config")
+@hydra.main(version_base=None, config_path="../conf", config_name="config")
 def main(cfg: DictConfig):
     start_time = time.time()
     full_df = pd.DataFrame()
@@ -62,8 +62,10 @@ def main(cfg: DictConfig):
         #convert ndarray to array and save 
         df['variant'] = variant
         full_df = pd.concat([full_df,df],ignore_index=True)
-        
-    np.savetxt(f'{cfg.path.data}/cesm_data_variant.csv',np.asarray(full_df),delimiter=',',header=header)
+    full_df['area'] =  full_df.apply(lambda x: getArea(x['lat'],x['lon']),axis=1)
+
+    header = header + ',area'
+    np.savetxt(f'{cfg.data}/cesm_data_variant.csv',np.asarray(full_df),delimiter=',',header=header)
     duration = time.time() - start_time
     print(f'Completed in {duration} seconds.')
 

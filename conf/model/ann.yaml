@@ -13,5 +13,5 @@ output: ['cLeaf','cStem','cOther','cSoilAbove1m']
 # input: ['evspsblsoi','mrro','mrsos','treeFrac']
 # output: ['cSoilAbove1m']
 id: ['year','lat','lon']
-preprocess: 
-  raw_cmip_variables: ['rMaint','rGrowth','nppWood','nppRoot','nppLeaf','cSoilAbove1m','cOther','cCwd','cVeg','cLitter','cLeaf','cRoot','evspsblsoi','lai','tsl','mrro','mrsos','grassFrac','shrubFrac','cropFrac','baresoilFrac','residualFrac','treeFrac','shrubFrac','cSoil','cStem','wetlandFrac','ps','pr','tas']
+
+raw_cmip_variables: ['rMaint','rGrowth','nppWood','nppRoot','nppLeaf','nppOther','nppStem','cSoilAbove1m','cOther','cCwd','cVeg','cLitter','cLeaf','cRoot','evspsblsoi','lai','tsl','mrro','mrsos','grassFrac','shrubFrac','cropFrac','baresoilFrac','residualFrac','treeFrac','shrubFrac','cSoil','cStem','wetlandFrac','ps','pr','tas']

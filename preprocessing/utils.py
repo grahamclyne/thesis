@@ -102,7 +102,7 @@ def clipWithShapeFile(netcdf_file,variable,shape_file):
 
 #split temperatures into seasonal temps
 def seasonalAverages(netcdf_file:xr.Dataset, variable:str,shape_file:geopandas.GeoDataFrame,upstream:str) -> list:
-    netcdf_file = scaleLongitudes(netcdf_file, 'lon')
+    netcdf_file = scaleLongitudes(netcdf_file)
     years = np.unique(netcdf_file['time.year'].data)
     netcdf_file = clipWithShapeFile(netcdf_file,variable,shape_file)
     output = [[] for _ in range(4)]
@@ -176,3 +176,12 @@ def mapProvincialCoordinates(cfg) -> dict:
             else:
                 province_dict[province].append(((left,bottom)))
     return province_dict
+
+def scaleVariable(df:pd.DataFrame,variable:str):
+    #convert kg/m2 to megatonnes C
+    if(variable in ["nppWood","nppLeaf","nppRoot"]):
+        temp = df[variable] * 60 * 60 * 24 * 365
+    else:
+        temp = df[variable]
+    # area = df.apply(lambda x: getArea(x['lat'],x['lon']),axis=1)
+    return temp * df['area'] / 1e9 #to megatonnes
