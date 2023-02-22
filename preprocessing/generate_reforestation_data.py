@@ -18,7 +18,10 @@ def main(cfg: DictConfig):
     #for each year of harvest data, merge with the observed data and add the harvests to the treeFrac column
     for year in range(1985,2016):
         observed_data.loc[observed_data['year_x'].isin([x for x in range(year,2016)]),'treeFrac'] = (observed_data.loc[observed_data['year_x'].isin([x for x in range(year,2016)]),year]) + observed_data.loc[observed_data['year_x'].isin([x for x in range(year,2016)]),'treeFrac']
-        observed_ts.loc[observed_ts['year_x'].isin([x for x in range(year,2016)]),'treeFrac'] = (observed_ts.loc[observed_ts['year_x'].isin([x for x in range(year,2016)]),year]) + observed_ts.loc[observed_ts['year_x'].isin([x for x in range(year,2016)]),'treeFrac']
+        # observed_ts.loc[observed_ts['year_x'].isin([x for x in range(year,2016)]),'treeFrac'] = (observed_ts.loc[observed_ts['year_x'].isin([x for x in range(year,2016)]),year]) + observed_ts.loc[observed_ts['year_x'].isin([x for x in range(year,2016)]),'treeFrac']
+    
+    
+    
     observed_data.rename(columns={'year_x':'year'},inplace=True)
     observed_data.to_csv(f'{cfg.environment.path.reforested_input}',index=False)
     observed_ts.to_csv(f'{cfg.data}/observed_reforest_ts.csv',index=False)

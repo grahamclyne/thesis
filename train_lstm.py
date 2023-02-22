@@ -27,6 +27,8 @@ def main(cfg: DictConfig):
     #need to reshape here for data scaling
     # split data into 6 chunks, use 4 for training, 1 for validation, 1 for hold out
     # chunk_size = len((np.array_split(cesm_df, 6, axis=0))[0])
+    for var in cfg.model.output:
+        cesm_df[var] = cesm_df[var].apply(lambda x: x*1000000000)
     chunk_size = 12000
     cesm_df = cesm_df[cfg.model.input + cfg.model.output + cfg.model.id]
     cesm_df = cesm_df.to_numpy()
@@ -42,13 +44,13 @@ def main(cfg: DictConfig):
     print(train_ds)    
     #fix that you are modifying targets here too
     scaler = preprocessing.StandardScaler().fit(train_ds.loc[:,cfg.model.input])
-    hold_out_scaler = preprocessing.StandardScaler().fit(hold_out.loc[:,cfg.model.input])
+    # hold_out_scaler = preprocessing.StandardScaler().fit(hold_out.loc[:,cfg.model.input])
     train_ds.loc[:,cfg.model.input] = scaler.transform(train_ds.loc[:,cfg.model.input])
     # train_ds.loc[:,cfg.model.output] = out_scaler.transform(train_ds.loc[:,cfg.model.output])
     hold_out.loc[:,cfg.model.input] = scaler.transform(hold_out.loc[:,cfg.model.input])
 
-    dump(scaler, open(f'{cfg.environment.path.checkpoint}/lstm_scaler.pkl','wb'))
-    dump(hold_out_scaler, open(f'{cfg.environment.path.checkpoint}/lstm_hold_out_scaler.pkl','wb'))
+    dump(scaler, open(f'{cfg.environment.path.checkpoint}/lstm_scaler_{wandb.run.name}.pkl','wb'))
+    # dump(hold_out_scaler, open(f'{cfg.environment.path.checkpoint}/lstm_hold_out_scaler_{wandb.run.name}.pkl','wb'))
     hold_out = CMIPTimeSeriesDataset(hold_out,cfg.model.params.seq_len,len(cfg.model.input + cfg.model.output + cfg.model.id),cfg)
     train_ds = CMIPTimeSeriesDataset(train_ds,cfg.model.params.seq_len,len(cfg.model.input + cfg.model.output + cfg.model.id),cfg)
     train,validation = torch.utils.data.random_split(train_ds, [0.8,0.2], generator=torch.Generator().manual_seed(0))
@@ -79,12 +81,12 @@ def main(cfg: DictConfig):
             valid_loss = 0
             for src,tgt,id in validation_ldr:
                 pred_y = model(src.float())
-
                 loss = loss_function(pred_y,tgt.float())
                 valid_loss += loss.item()
                 wandb.log({"validation_loss": loss})
-        
             wandb.log({'total_valid_loss':valid_loss})
+
+
             hold_out_loss=0
             total_predictions = []
             total_targets = []
@@ -95,11 +97,10 @@ def main(cfg: DictConfig):
                 total_predictions.append(pred_y.detach().numpy())
                 total_targets.append(tgt.detach().numpy())
                 wandb.log({"hold_out_loss": loss})
-                print(id[0])
-                print(pred_y.detach().numpy()[0])
-                print(tgt.detach().numpy()[0])
+                print(pred_y.detach().numpy())
+                print(tgt.detach().numpy())
             epoch_time = time.time() - total_start
             wandb.log({'epoch time':epoch_time})
 
-            torch.save({'model_state_dict': model.state_dict(),'optimizer_state_dict': optimizer.state_dict(),}, f'{cfg.environment.path.checkpoint}/lstm_checkpoint.pt')
+            torch.save({'model_state_dict': model.state_dict(),'optimizer_state_dict': optimizer.state_dict(),}, f'{cfg.environment.path.checkpoint}/lstm_checkpoint_{wandb.run.name}.pt')
 main()

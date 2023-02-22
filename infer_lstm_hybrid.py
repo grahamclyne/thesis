@@ -11,9 +11,16 @@ import hydra
 import numpy as np    
 from preprocessing.utils import scaleVariable
 from sklearn.preprocessing import StandardScaler
-
+import wandb
+import omegaconf
 
 def plotComparison(df1:pd.DataFrame,df2:pd.DataFrame,df3:pd.DataFrame,variable:str):
+    df2['id'] = 'reforestation'
+    df3['id'] = 'no reforestation'
+    df1['id'] = 'CESM'
+    df_final = pd.concat([df1,df2,df3])
+    table = wandb.Table(data=df_final[[variable,'year','lat','lon','id']])
+    wandb.log({variable + '_df' : table})
     fig, ax = plt.subplots()
     ax.plot(df1.groupby('year').sum()[variable],label='CESM')
     ax.plot(df2.groupby('year').sum()[variable],label='Reforestation')
@@ -21,6 +28,7 @@ def plotComparison(df1:pd.DataFrame,df2:pd.DataFrame,df3:pd.DataFrame,variable:s
     ax.legend()
     ax.title.set_text(f'{variable}')
     # ax.axhline(0, color='black', linewidth=.5)
+    # wandb.log({f'{variable}_CESM':wandb.Image(fig)})
 
     fig.savefig(f'{variable}_lstm.png')
 
@@ -28,17 +36,17 @@ def plotComparison(df1:pd.DataFrame,df2:pd.DataFrame,df3:pd.DataFrame,variable:s
 def infer_lstm(data,cfg):
 
     final_input = data[cfg.model.input + cfg.model.output + cfg.model.id]
-    scaler = load(open(f'{cfg.project}/checkpoint/lstm_scaler.pkl', 'rb'))
+    scaler = load(open(f'{cfg.project}/checkpoint/lstm_scaler_neat-water-101.pkl', 'rb'))
     # out_scaler = load(open(f'{cfg.project}/checkpoint/lstm_output_scaler.pkl', 'rb'))
     # scaler = StandardScaler()
     print(final_input)
-    final_input.loc[:,cfg.model.input] =scaler.transform(final_input.loc[:,cfg.model.input])
+    final_input.loc[:,cfg.model.input ] =scaler.transform(final_input.loc[:,cfg.model.input])
 
     # final_input[cfg.model.input]=final_input[cfg.model.input].apply(scaler.transform)
     print(final_input)
     # hold_out_out_scaler = StandardScaler().fit(final_input[29::30].loc[:,cfg.model.output])
     model = RegressionLSTM(num_sensors=len(cfg.model.input), hidden_units=cfg.model.params.hidden_units,cfg=cfg)
-    checkpoint = T.load(f'{cfg.project}/checkpoint/lstm_checkpoint.pt')
+    checkpoint = T.load(f'{cfg.project}/checkpoint/lstm_checkpoint_neat-water-101.pt')
     model.load_state_dict(checkpoint['model_state_dict'])
     final_input = final_input[cfg.model.input + cfg.model.output + cfg.model.id]
     ds = CMIPTimeSeriesDataset(final_input,cfg.model.params.seq_len,len(cfg.model.input) + len(cfg.model.output) + len(cfg.model.id),cfg)
@@ -54,8 +62,8 @@ def infer_lstm(data,cfg):
         results.extend(y)
         ids.append(id.detach().numpy())
         tgts.extend(tgt.detach().numpy())
-        print(y)
-        print(tgt)
+        # print(y)
+        # print(tgt)
         # print(id)
     ids = np.concatenate(ids)
     results_df = pd.DataFrame(results)
@@ -74,10 +82,12 @@ def infer_lstm(data,cfg):
 
 @hydra.main(version_base=None, config_path="conf", config_name="config")
 def main(cfg: DictConfig):
+    wandb.init(project="inference", entity="gclyne",config=omegaconf.OmegaConf.to_container(cfg, resolve=True, throw_on_missing=True))
+    run_name = 'astral-sound-100'
     cesm_data = pd.read_csv('data/timeseries_cesm_hold_out_data_30.csv')
     cesm_data.rename(columns={'# year':'year'},inplace=True)
 
-    cesm_data = cesm_data[cfg.model.input + cfg.model.output + cfg.model.id]
+    cesm_data = cesm_data[cfg.model.input +  cfg.model.output + cfg.model.id]
     # cesm_data = cesm_data.where(cesm_data['year'] > 1984).dropna()
     # cesm_data = cesm_data.iloc[0:300]
 
@@ -102,22 +112,23 @@ def main(cfg: DictConfig):
     # observed_input = observed_input.where((observed_input['year'] > 1980) & (observed_input['year'] < 2015)).dropna()
     observed_input = observed_input[['year','lat','lon','treeFrac']]
     reforested_input = pd.read_csv(cfg.environment.path.reforested_input)
-    # reforested_input['lat'] = round(reforested_input['lat'],6)
-    # observed_input['lat'] = round(observed_input['lat'],6)
+    reforested_input['lat'] = round(reforested_input['lat'],6)
+    observed_input['lat'] = round(observed_input['lat'],6)
     # reforested_input.fillna(reforested_input.median(),inplace=True)
     # reforested_input = reforested_input.where((reforested_input['year'] > 1984) & (reforested_input['year'] < 2015)).dropna()
     reforested_input = reforested_input[['year','lat','lon','treeFrac']]
     # print(observed_input.where(observed_input['treeFrac']))
-    df_merged = pd.merge(cesm_data,observed_input,on=['year','lat','lon'],how='inner')
-    reforested_merged = pd.merge(cesm_data,reforested_input,on=['year','lat','lon'],how='inner')
+    df_merged = pd.merge(cesm_data,observed_input,on=['year','lat','lon'],how='left')
+    reforested_merged = pd.merge(cesm_data,reforested_input,on=['year','lat','lon'],how='left')
     df_merged = df_merged.drop(columns=['treeFrac_x'])
     df_merged = df_merged.rename(columns={'treeFrac_y':'treeFrac'})
-    # pd.set_option('display.max_rows', None)
-    # empty_coords = df_merged[df_merged['treeFrac'].isna()].dropna(how='all')[['lat','lon']].drop_duplicates().reset_index()
-    # print(empty_coords)
-    # # print(df_merged.where(df_merged['lat'].isin(empty_coords['lat'])))
-    # df_merged = df_merged.where(~((df_merged['lat'].isin(empty_coords['lat'])) & (df_merged['lon'].isin(empty_coords['lon']))))
-
+    # pd.set_option('display. max_rows', None)
+    empty_coords = df_merged[df_merged['treeFrac'].isna()].dropna(how='all')[['lat','lon']].drop_duplicates().reset_index()
+    print(empty_coords)
+    # print(df_merged.where(df_merged['lat'].isin(empty_coords['lat'])))
+    df_merged = df_merged.where(~((df_merged['lat'].isin(empty_coords['lat'])) & (df_merged['lon'].isin(empty_coords['lon'])))).dropna()
+    cesm_data = cesm_data.where(~((cesm_data['lat'].isin(empty_coords['lat'])) & (cesm_data['lon'].isin(empty_coords['lon'])))).dropna()
+    reforested_merged = reforested_merged.where(~((reforested_merged['lat'].isin(empty_coords['lat'])) & (reforested_merged['lon'].isin(empty_coords['lon'])))).dropna()
 
 
 
@@ -125,10 +136,10 @@ def main(cfg: DictConfig):
 
     reforested_merged = reforested_merged.drop(columns=['treeFrac_x'])
     reforested_merged = reforested_merged.rename(columns={'treeFrac_y':'treeFrac'})
-    df_merged.interpolate(method='spline',order=5,inplace=True)
-    reforested_merged.interpolate(method='spline',order=5,inplace=True)
-    reforested_merged.dropna(how='any',inplace=True)
-    no_reforest_infer,tgts = infer_lstm(cesm_data,cfg)
+    # df_merged.interpolate(method='spline',order=5,inplace=True)
+    # reforested_merged.interpolate(method='spline',order=5,inplace=True)
+    # reforested_merged.dropna(how='any',inplace=True)
+    no_reforest_infer,tgts = infer_lstm(df_merged,cfg)
     no_reforest_infer.to_csv('data/lstm_hybrid_no_reforest.csv')
     reforest_infer,tgts1 = infer_lstm(reforested_merged,cfg)
     
@@ -150,10 +161,10 @@ def main(cfg: DictConfig):
         no_reforest_infer.loc[:,var] = no_reforest_infer.loc[:,var] / 1000000000
 
 
-    plotComparison(cesm_data,reforest_infer,no_reforest_infer,'nppWood')
+    plotComparison(cesm_data,reforest_infer,no_reforest_infer,'nppWood' )
     plotComparison(cesm_data,reforest_infer,no_reforest_infer,'nppRoot')
     plotComparison(cesm_data,reforest_infer,no_reforest_infer,'nppLeaf')
-    plotComparison(cesm_data,reforested_merged,df_merged,'treeFrac')
-    plotComparison(cesm_data,reforest_infer,no_reforest_infer,'cSoilAbove1m')
+    # plotComparison(cesm_data,reforested_merged,df_merged,'treeFrac')
+    # plotComparison(cesm_data,reforest_infer,no_reforest_infer,'cSoilAbove1m')
 
 main()

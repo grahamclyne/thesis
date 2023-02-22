@@ -49,10 +49,15 @@ cesm_data = cesm_data[cesm_data['year'] == 2014]
 
 import numpy as np
 import matplotlib.pyplot as plt
-obs_lstm = pd.read_csv('data/forest_carbon_observed_lstm.csv').dropna()
+obs_lstm = pd.read_csv('data/forest_carbon_observed_lstm.csv')
 obs_lstm = obs_lstm[obs_lstm['year'] == 2015]
-
-print(len(cesm_data),len(obs_lstm))
+cesm_data = pd.merge(cesm_data,obs_lstm,on=['lat','lon'],how='inner')
+print(cesm_data.columns)
+cesm_data = cesm_data.rename(columns={'cSoilAbove1m_x':'cSoilAbove1m'})
+print(len(cesm_data),len(obs_lstm),len(soil_pdf))
+pd.set_option('display.max_columns', None)
+print(cesm_data.describe())
+print(obs_lstm.describe())
 def plot3dCanada(data:pd.DataFrame,variable:str,title:str) -> None: 
     lat,lon = np.meshgrid(data['lat'].unique(),np.sort(data['lon'].unique()))
     grid = data.pivot_table(variable, 'lon', 'lat', fill_value=0).to_numpy()
@@ -76,6 +81,7 @@ plot3dCanada(cesm_data,'cSoilAbove1m','CESM2 Reported Soil Carbon')
 plot3dCanada(soil_pdf,'soil','WWF Canada Reported Soil Carbon')
 plot3dCanada(obs_lstm,'cSoilAbove1m','LSTM Predicted Soil Carbon (ERA)')
 
+print(soil_pdf)
 reported_sum = soil_pdf['soil'].sum()
 cesm_sum = cesm_data['cSoilAbove1m'].sum()
 lstm_predicted_with_observed_sum = obs_lstm['cSoilAbove1m'].sum()
