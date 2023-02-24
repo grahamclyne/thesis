@@ -5,3 +5,5 @@ defaults:
 
 project: '/Users/gclyne/thesis'
 data: '/Users/gclyne/thesis/data'
+entity: 'gclyne'
+wandb_project: 'dist-lstm-land-model'

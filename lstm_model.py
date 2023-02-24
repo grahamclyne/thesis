@@ -6,7 +6,7 @@ class RegressionLSTM(nn.Module):
         super().__init__()
         self.num_sensors = num_sensors  # this is the number of features
         self.hidden_units = hidden_units
-        self.num_layers = cfg.model.params.num_layers
+        self.num_layers = cfg.model.num_layers
         self.cfg = cfg
         self.lstm = nn.LSTM(
             input_size=num_sensors,

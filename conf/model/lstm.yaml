@@ -1,14 +1,14 @@
-params:  
-  epochs: 150
-  lr: 0.0001
-  batch_size: 1024
-  num_layers: 3
-  hidden_units: 128
-  seq_len: 30
-  
-# input: ['tsl','ps','pr','mrro','mrsos','treeFrac','tas_DJF', 'tas_MAM', 'tas_JJA', 'tas_SON']
 
-input: ['evspsblsoi','ps','tsl','mrro','mrsos','treeFrac','pr','tas_DJF','tas_JJA']
+epochs: 150
+lr: 0.0001
+batch_size: 1024
+num_layers: 4
+hidden_units: 256
+seq_len: 30
+
+# input: ['tsl','ps','pr','treeFrac','tas_DJF', 'tas_MAM', 'tas_JJA', 'tas_SON']
+
+input: ['ps','tsl','treeFrac','pr','tas_DJF','tas_JJA']
   #input: ['ps','treeFrac','tas_DJF', 'tas_MAM', 'tas_JJA', 'tas_SON','pr']
   #input: ['treeFrac','tas_DJF','tas_JJA']
   # output: ['cSoil','cCwd','cVeg','cLitter','cLeaf','cRoot','cStem','cOther','cSoilAbove1m']

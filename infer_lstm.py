@@ -13,16 +13,16 @@ def main(cfg: DictConfig):
     print(cfg)
     final_input = pd.read_csv(f'{cfg.data}/observed_timeseries30_data.csv')
     print(final_input)
-
+    run_name = 'ruby-wind-104'
     final_input = final_input.dropna(how='any')
     final_input = final_input[cfg.model.input + cfg.model.id]
-    scaler = load(open(f'{cfg.project}/checkpoint/lstm_scaler_soil_only.pkl', 'rb'))
+    scaler = load(open(f'{cfg.project}/checkpoint/lstm_scaler_{run_name}.pkl', 'rb'))
     # out_scaler = load(open(f'{cfg.project}/checkpoint/lstm_output_scaler_soil_only.pkl', 'rb'))
     final_input.loc[:,cfg.model.input] = scaler.transform(final_input.loc[:,cfg.model.input])
     # final_input.loc[:,cfg.model.output] = out_scaler.transform(final_input.loc[:,cfg.model.output])
 
     model = RegressionLSTM(num_sensors=len(cfg.model.input), hidden_units=cfg.model.params.hidden_units,cfg=cfg)
-    checkpoint = T.load(f'{cfg.project}/checkpoint/lstm_checkpoint_soil_only.pt')
+    checkpoint = T.load(f'{cfg.project}/checkpoint/lstm_checkpoint_{run_name}.pt')
     model.load_state_dict(checkpoint['model_state_dict'])
     # optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
     ds = CMIPTimeSeriesDataset(final_input,cfg.model.params.seq_len,len(cfg.model.input) + len(cfg.model.id),cfg)

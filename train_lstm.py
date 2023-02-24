@@ -11,24 +11,29 @@ import wandb
 import torch
 import numpy as np
 from lstm_model import RegressionLSTM
+from transformer.transformer_model import CMIPTimeSeriesDataset
 
 @hydra.main(version_base=None, config_path="conf",config_name='config')
 def main(cfg: DictConfig):
     model = RegressionLSTM(num_sensors=len(cfg.model.input), hidden_units=cfg.model.params.hidden_units,cfg=cfg)
-    torch.set_num_threads(8)
+
+    model = torch.nn.parallel.DistributedDataParallel(
+        model,
+        device_ids=None,
+        output_device=None,
+    )
 
     # Define Loss, Optimizer
     loss_function = nn.MSELoss()
     wandb.init(project="rnn-land-carbon", entity="gclyne",config=omegaconf.OmegaConf.to_container(cfg, resolve=True, throw_on_missing=True))
 
-    from transformer.transformer_model import CMIPTimeSeriesDataset
     cesm_df = pd.read_csv(f'{cfg.data}/timeseries_cesm_training_data_30.csv')
     cesm_df.rename(columns={'# year':'year'},inplace=True)
     #need to reshape here for data scaling
     # split data into 6 chunks, use 4 for training, 1 for validation, 1 for hold out
     # chunk_size = len((np.array_split(cesm_df, 6, axis=0))[0])
-    for var in cfg.model.output:
-        cesm_df[var] = cesm_df[var].apply(lambda x: x*1000000000)
+    # for var in cfg.model.output:
+    #     cesm_df[var] = cesm_df[var].apply(lambda x: x*1000000000)
     chunk_size = 12000
     cesm_df = cesm_df[cfg.model.input + cfg.model.output + cfg.model.id]
     cesm_df = cesm_df.to_numpy()
@@ -41,7 +46,7 @@ def main(cfg: DictConfig):
     print(cesm_df.head())
     hold_out = cesm_df[-chunk_size:]
     train_ds = cesm_df[:-chunk_size]
-    print(train_ds)    
+    print(train_ds)
     #fix that you are modifying targets here too
     scaler = preprocessing.StandardScaler().fit(train_ds.loc[:,cfg.model.input])
     # hold_out_scaler = preprocessing.StandardScaler().fit(hold_out.loc[:,cfg.model.input])
@@ -54,8 +59,9 @@ def main(cfg: DictConfig):
     hold_out = CMIPTimeSeriesDataset(hold_out,cfg.model.params.seq_len,len(cfg.model.input + cfg.model.output + cfg.model.id),cfg)
     train_ds = CMIPTimeSeriesDataset(train_ds,cfg.model.params.seq_len,len(cfg.model.input + cfg.model.output + cfg.model.id),cfg)
     train,validation = torch.utils.data.random_split(train_ds, [0.8,0.2], generator=torch.Generator().manual_seed(0))
+    train_sampler = torch.utils.data.DistributedSampler(train)
 
-    train_ldr = torch.utils.data.DataLoader(train,batch_size=cfg.model.params.batch_size,shuffle=True)
+    train_ldr = torch.utils.data.DataLoader(train,batch_size=cfg.model.params.batch_size,shuffle=False, sampler=train_sampler)#train sample shuffles for us
     validation_ldr = torch.utils.data.DataLoader(validation,batch_size=cfg.model.params.batch_size,shuffle=True)
     hold_out_ldr = torch.utils.data.DataLoader(hold_out,batch_size=cfg.model.params.batch_size,shuffle=True)
     optimizer = torch.optim.Adam(model.parameters(), lr=cfg.model.params.lr)
@@ -63,6 +69,7 @@ def main(cfg: DictConfig):
 
     for epoch_count in range(cfg.model.params.epochs):
             total_start = time.time()
+            train_sampler.set_epoch(epoch_count)
 
             print('Epoch:',epoch_count)
             train_loss = 0
