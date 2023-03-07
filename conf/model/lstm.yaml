@@ -15,5 +15,5 @@ input: ['ps','tsl','treeFrac','pr','tas_DJF','tas_JJA']
 # output: ['nppWood','nppLeaf','nppRoot']
   #only for cSoil
   # input: ['evspsblsoi','mrro','mrsos','treeFrac']
-output: ['cSoilAbove1m']
+output: ['cOther','cLeaf','cStem','cSoilAbove1m']
 id: ['year','lat','lon']

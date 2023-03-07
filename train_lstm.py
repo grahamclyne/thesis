@@ -15,7 +15,7 @@ from transformer.transformer_model import CMIPTimeSeriesDataset
 
 @hydra.main(version_base=None, config_path="conf",config_name='config')
 def main(cfg: DictConfig):
-    model = RegressionLSTM(num_sensors=len(cfg.model.input), hidden_units=cfg.model.params.hidden_units,cfg=cfg)
+    model = RegressionLSTM(num_sensors=len(cfg.model.input), hidden_units=cfg.model.hidden_units,cfg=cfg)
 
     model = torch.nn.parallel.DistributedDataParallel(
         model,
@@ -37,7 +37,7 @@ def main(cfg: DictConfig):
     chunk_size = 12000
     cesm_df = cesm_df[cfg.model.input + cfg.model.output + cfg.model.id]
     cesm_df = cesm_df.to_numpy()
-    cesm_df = cesm_df.reshape(-1,cfg.model.params.seq_len,len(cfg.model.input + cfg.model.output + cfg.model.id))
+    cesm_df = cesm_df.reshape(-1,cfg.model.seq_len,len(cfg.model.input + cfg.model.output + cfg.model.id))
     np.random.shuffle(cesm_df)
     cesm_df = cesm_df.reshape(-1,len(cfg.model.input + cfg.model.output + cfg.model.id))
     print(cesm_df)
@@ -54,20 +54,20 @@ def main(cfg: DictConfig):
     # train_ds.loc[:,cfg.model.output] = out_scaler.transform(train_ds.loc[:,cfg.model.output])
     hold_out.loc[:,cfg.model.input] = scaler.transform(hold_out.loc[:,cfg.model.input])
 
-    dump(scaler, open(f'{cfg.environment.path.checkpoint}/lstm_scaler_{wandb.run.name}.pkl','wb'))
-    # dump(hold_out_scaler, open(f'{cfg.environment.path.checkpoint}/lstm_hold_out_scaler_{wandb.run.name}.pkl','wb'))
-    hold_out = CMIPTimeSeriesDataset(hold_out,cfg.model.params.seq_len,len(cfg.model.input + cfg.model.output + cfg.model.id),cfg)
-    train_ds = CMIPTimeSeriesDataset(train_ds,cfg.model.params.seq_len,len(cfg.model.input + cfg.model.output + cfg.model.id),cfg)
+    dump(scaler, open(f'{cfg.environment.checkpoint}/lstm_scaler_{wandb.run.name}.pkl','wb'))
+    # dump(hold_out_scaler, open(f'{cfg.environment.checkpoint}/lstm_hold_out_scaler_{wandb.run.name}.pkl','wb'))
+    hold_out = CMIPTimeSeriesDataset(hold_out,cfg.model.seq_len,len(cfg.model.input + cfg.model.output + cfg.model.id),cfg)
+    train_ds = CMIPTimeSeriesDataset(train_ds,cfg.model.seq_len,len(cfg.model.input + cfg.model.output + cfg.model.id),cfg)
     train,validation = torch.utils.data.random_split(train_ds, [0.8,0.2], generator=torch.Generator().manual_seed(0))
     train_sampler = torch.utils.data.DistributedSampler(train)
 
-    train_ldr = torch.utils.data.DataLoader(train,batch_size=cfg.model.params.batch_size,shuffle=False, sampler=train_sampler)#train sample shuffles for us
-    validation_ldr = torch.utils.data.DataLoader(validation,batch_size=cfg.model.params.batch_size,shuffle=True)
-    hold_out_ldr = torch.utils.data.DataLoader(hold_out,batch_size=cfg.model.params.batch_size,shuffle=True)
-    optimizer = torch.optim.Adam(model.parameters(), lr=cfg.model.params.lr)
+    train_ldr = torch.utils.data.DataLoader(train,batch_size=cfg.model.batch_size,shuffle=False, sampler=train_sampler)#train sample shuffles for us
+    validation_ldr = torch.utils.data.DataLoader(validation,batch_size=cfg.model.batch_size,shuffle=True)
+    hold_out_ldr = torch.utils.data.DataLoader(hold_out,batch_size=cfg.model.batch_size,shuffle=True)
+    optimizer = torch.optim.Adam(model.parameters(), lr=cfg.model.lr)
 
 
-    for epoch_count in range(cfg.model.params.epochs):
+    for epoch_count in range(cfg.model.epochs):
             total_start = time.time()
             train_sampler.set_epoch(epoch_count)
 
@@ -109,5 +109,5 @@ def main(cfg: DictConfig):
             epoch_time = time.time() - total_start
             wandb.log({'epoch time':epoch_time})
 
-            torch.save({'model_state_dict': model.state_dict(),'optimizer_state_dict': optimizer.state_dict(),}, f'{cfg.environment.path.checkpoint}/lstm_checkpoint_{wandb.run.name}.pt')
+            torch.save({'model_state_dict': model.state_dict(),'optimizer_state_dict': optimizer.state_dict(),}, f'{cfg.environment.checkpoint}/lstm_checkpoint_{wandb.run.name}.pt')
 main()

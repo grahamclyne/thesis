@@ -8,7 +8,7 @@ import numpy as np
 def main(cfg: DictConfig):
 
     # t2m lai_lv swvl1 ro lai_hv sp skt evabs stl1 tp total_lai
-    era_data = pd.read_csv(f'{cfg.data}/era_data.csv',index_col=False)
+    era_data = pd.read_csv(f'{cfg.data}/ERA/era_data.csv',index_col=False)
     nfis_data = pd.read_csv(f'{cfg.data}/generated_data/nfis_tree_cover_data.csv')
 
     era_data = era_data.rename(columns={'# year':'year'})

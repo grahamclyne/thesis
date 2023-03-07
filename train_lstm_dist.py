@@ -56,8 +56,8 @@ def get_training_data(cfg,run):
     # train_ds.loc[:,cfg.model.output] = out_scaler.transform(train_ds.loc[:,cfg.model.output])
     # hold_out.loc[:,cfg.model.input] = scaler.transform(hold_out.loc[:,cfg.model.input])
     if run != None:
-        dump(scaler, open(f'{cfg.environment.path.checkpoint}/lstm_scaler_{run.name}.pkl','wb'))
-    # dump(hold_out_scaler, open(f'{cfg.environment.path.checkpoint}/lstm_hold_out_scaler_{wandb.run.name}.pkl','wb'))
+        dump(scaler, open(f'{cfg.environment.checkpoint}/lstm_scaler_{run.name}.pkl','wb'))
+    # dump(hold_out_scaler, open(f'{cfg.environment.checkpoint}/lstm_hold_out_scaler_{wandb.run.name}.pkl','wb'))
     # hold_out = CMIPTimeSeriesDataset(hold_out,cfg.model.seq_len,len(cfg.model.input + cfg.model.output + cfg.model.id),cfg)
     train_ds = CMIPTimeSeriesDataset(train_ds,cfg.model.seq_len,len(cfg.model.input + cfg.model.output + cfg.model.id),cfg)
     train,validation = torch.utils.data.random_split(train_ds, [0.8,0.2], generator=torch.Generator().manual_seed(0))
@@ -155,6 +155,9 @@ def train(cfg, run=None):
 
         if do_log:
             run.log({"epoch": epoch, "loss": np.mean(batch_loss),'valid_loss':np.mean(valid_batch_loss),'epoch_time':time.time() - total_start})
+        if is_master:
+            torch.save({'model_state_dict': model.state_dict(),'optimizer_state_dict': optimizer.state_dict(),}, f'{cfg.environment.checkpoint}/lstm_checkpoint_{wandb.run.name}.pt')
+
 
 def setup_run(cfg):
     if os.environ['LOCAL_RANK'] == '0':

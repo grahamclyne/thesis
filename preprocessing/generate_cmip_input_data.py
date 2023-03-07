@@ -3,31 +3,21 @@ import time
 import geopandas
 import numpy as np
 import pandas as pd
-from preprocessing.utils import scaleLongitudes, seasonalAverages,clipWithShapeFile,getArea
+from preprocessing.utils import scaleLongitudes, seasonalAverages,clipWithShapeFile,getArea,netcdfToNumpy
 
 import hydra
 from omegaconf import DictConfig
 
-def netcdfToNumpy(netcdf_file,variable,shape_file,getUniqueKey):
-    netcdf_file = scaleLongitudes(netcdf_file)
-    netcdf_file = netcdf_file.groupby('time.year').mean()
-    clipped = clipWithShapeFile(netcdf_file,variable,shape_file)
-    df = clipped.to_dataframe().reset_index()
-    if(getUniqueKey):
-        return df[['year','lat','lon',variable]].values.reshape(-1,4)
-    else:
-        return df[[variable]].values.reshape(-1,1)
-
 
 def CESMVariables(variant,cfg):
-    shape_file = geopandas.read_file(f'{cfg.environment.path.shapefiles}/NIR2016_MF.shp', crs="epsg:4326")
+    shape_file = geopandas.read_file(f'{cfg.environment.shapefiles}/NIR2016_MF.shp', crs="epsg:4326")
     out = []
     header = cfg.model.raw_cmip_variables
     getYearLatLon = True
     #replace tas with seasons
     header = header[:header.index('tas')] + ['tas_DJF','tas_JJA','tas_MAM','tas_SON'] + header[header.index('tas')+1:]     
     for var in cfg.model.raw_cmip_variables:
-        ds = xr.open_mfdataset(f'{cfg.environment.path.cesm}/{var}*r{variant}i1p1f1*.nc',parallel=True)
+        ds = xr.open_mfdataset(f'{cfg.environment.cesm}/{var}*r{variant}i1p1f1*.nc',parallel=True)
         if(var == 'tas'):
             out.extend(seasonalAverages(ds,var,shape_file,'CESM'))
         else:

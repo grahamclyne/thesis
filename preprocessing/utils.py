@@ -12,6 +12,16 @@ import pyproj
 from shapely.geometry import box
 
 
+def netcdfToNumpy(netcdf_file,variable,shape_file,getUniqueKey):
+    netcdf_file = scaleLongitudes(netcdf_file)
+    netcdf_file = netcdf_file.groupby('time.year').mean()
+    clipped = clipWithShapeFile(netcdf_file,variable,shape_file)
+    df = clipped.to_dataframe().reset_index()
+    if(getUniqueKey):
+        return df[['year','lat','lon',variable]].values.reshape(-1,4)
+    else:
+        return df[[variable]].values.reshape(-1,1)
+
 
 def readCoordinates(file_path:str,is_grid_file:bool) -> list:
     coordinates = []

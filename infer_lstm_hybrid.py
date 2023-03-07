@@ -34,9 +34,9 @@ def plotComparison(df1:pd.DataFrame,df2:pd.DataFrame,df3:pd.DataFrame,variable:s
 
 
 def infer_lstm(data,cfg):
-
-    final_input = data[cfg.model.input + cfg.model.output + cfg.model.id]
-    scaler = load(open(f'{cfg.project}/checkpoint/lstm_scaler_neat-water-101.pkl', 'rb'))
+    model_name = 'sleek-cherry-20'
+    final_input = data[cfg.model.input +cfg.model.id]
+    scaler = load(open(f'{cfg.project}/checkpoint/lstm_scaler_{model_name}.pkl', 'rb'))
     # out_scaler = load(open(f'{cfg.project}/checkpoint/lstm_output_scaler.pkl', 'rb'))
     # scaler = StandardScaler()
     print(final_input)
@@ -45,11 +45,11 @@ def infer_lstm(data,cfg):
     # final_input[cfg.model.input]=final_input[cfg.model.input].apply(scaler.transform)
     print(final_input)
     # hold_out_out_scaler = StandardScaler().fit(final_input[29::30].loc[:,cfg.model.output])
-    model = RegressionLSTM(num_sensors=len(cfg.model.input), hidden_units=cfg.model.params.hidden_units,cfg=cfg)
-    checkpoint = T.load(f'{cfg.project}/checkpoint/lstm_checkpoint_neat-water-101.pt')
+    model = RegressionLSTM(num_sensors=len(cfg.model.input), hidden_units=cfg.model.hidden_units,cfg=cfg)
+    checkpoint = T.load(f'{cfg.project}/checkpoint/lstm_checkpoint_{model_name}.pt')
     model.load_state_dict(checkpoint['model_state_dict'])
     final_input = final_input[cfg.model.input + cfg.model.output + cfg.model.id]
-    ds = CMIPTimeSeriesDataset(final_input,cfg.model.params.seq_len,len(cfg.model.input) + len(cfg.model.output) + len(cfg.model.id),cfg)
+    ds = CMIPTimeSeriesDataset(final_input,cfg.model.seq_len,len(cfg.model.input) + len(cfg.model.output) + len(cfg.model.id),cfg)
     batch_size = 1
     ldr = T.utils.data.DataLoader(ds,batch_size=batch_size,shuffle=False)
     results = []
@@ -83,11 +83,13 @@ def infer_lstm(data,cfg):
 @hydra.main(version_base=None, config_path="conf", config_name="config")
 def main(cfg: DictConfig):
     wandb.init(project="inference", entity="gclyne",config=omegaconf.OmegaConf.to_container(cfg, resolve=True, throw_on_missing=True))
-    run_name = 'astral-sound-100'
+    run_name = 'sleek-cherry-20'
     cesm_data = pd.read_csv('data/timeseries_cesm_hold_out_data_30.csv')
+    # cesm_data = pd.read_csv(f'{cfg.data}/observed_timeseries30_data.csv')
+
     cesm_data.rename(columns={'# year':'year'},inplace=True)
 
-    cesm_data = cesm_data[cfg.model.input +  cfg.model.output + cfg.model.id]
+    cesm_data = cesm_data[cfg.model.input + cfg.model.id]
     # cesm_data = cesm_data.where(cesm_data['year'] > 1984).dropna()
     # cesm_data = cesm_data.iloc[0:300]
 
@@ -106,12 +108,12 @@ def main(cfg: DictConfig):
     cesm_data = cesm_data[cesm_data.lat != 42.879582]
     # cesm_data.dropna(how='any',inplace=True)
     	# 68.324608	-136.25
-    observed_input = pd.read_csv(cfg.environment.path.observed_input)
+    observed_input = pd.read_csv(cfg.environment.observed_input)
 
     # observed_input.fillna(observed_input.median(),inplace=True)
     # observed_input = observed_input.where((observed_input['year'] > 1980) & (observed_input['year'] < 2015)).dropna()
     observed_input = observed_input[['year','lat','lon','treeFrac']]
-    reforested_input = pd.read_csv(cfg.environment.path.reforested_input)
+    reforested_input = pd.read_csv(cfg.environment.reforested_input)
     reforested_input['lat'] = round(reforested_input['lat'],6)
     observed_input['lat'] = round(observed_input['lat'],6)
     # reforested_input.fillna(reforested_input.median(),inplace=True)
