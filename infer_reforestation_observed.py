@@ -128,11 +128,6 @@ def infer_lstm(data,cfg):
 def main(cfg: DictConfig):
     wandb.init(project="inference", entity="gclyne",config=omegaconf.OmegaConf.to_container(cfg, resolve=True, throw_on_missing=True))
     cesm_data = pd.read_csv('data/cesm_data_variant.csv')
-    cols = cesm_data.columns.append(pd.Index(['variant']))
-    cesm_data = cesm_data.reset_index()
-    cesm_data.columns = cols
-    cesm_data.rename(columns={'# year':'year'},inplace=True)
-
     # print(cesm_data.head())
     # print(cesm_data.year.unique())
     cesm_data = cesm_data[cfg.model.input + cfg.model.output + cfg.model.id]

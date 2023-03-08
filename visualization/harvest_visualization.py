@@ -8,18 +8,18 @@ import hydra
 from omegaconf import DictConfig
 
 
-@hydra.main(version_base=None, config_path="../conf", config_name="ann_config")
+@hydra.main(version_base=None, config_path="../conf", config_name="config")
 def main(cfg: DictConfig):
 
-    harvest_df = pd.read_csv(f'{config.GENERATED_DATA}/nfis_harvest_data.csv',header=None)
+    harvest_df = pd.read_csv(f'{cfg.data}/generated_data/nfis_harvest_data.csv',header=None)
     #the year columns are numbered 0,31
     harvest_df.columns = [x for x in range(0,33)] + ['year','lat','lon']
-    ordered_latitudes = readCoordinates(f'{cfg.path.data}/grid_latitudes.csv',is_grid_file=True)
-    ordered_longitudes = readCoordinates(f'{cfg.path.data}/grid_longitudes.csv',is_grid_file=True)
+    ordered_latitudes = readCoordinates(f'{cfg.data}/grid_latitudes.csv',is_grid_file=True)
+    ordered_longitudes = readCoordinates(f'{cfg.data}/grid_longitudes.csv',is_grid_file=True)
     total_harvested = 0
 
     #getting actual total_pixel size and "no_change" pixels, harvest data has 0's as no harvest which blend in with the cropped zeroes
-    nfis_df = pd.read_csv(f'{config.GENERATED_DATA}/nfis_tree_cover_data.csv')
+    nfis_df = pd.read_csv(f'{cfg.data}/generated_data/nfis_tree_cover_data.csv')
 
     #only need one year, all we are getting is the pixel size of each grid cell 
     nfis_df = nfis_df[nfis_df['year'] == 1985]
@@ -33,7 +33,7 @@ def main(cfg: DictConfig):
 
     areas = []
     for i,row in df_merged.iterrows():
-        area = getArea(*getCoordinates((row['lat'],row['lon']),ordered_latitudes,ordered_longitudes))
+        area = getArea(*getCoordinates(row['lat'],row['lon']))
         areas.append(area)
 
     areas_df = pd.DataFrame(areas)

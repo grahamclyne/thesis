@@ -28,7 +28,6 @@ def main(cfg: DictConfig):
     wandb.init(project="rnn-land-carbon", entity="gclyne",config=omegaconf.OmegaConf.to_container(cfg, resolve=True, throw_on_missing=True))
 
     cesm_df = pd.read_csv(f'{cfg.data}/timeseries_cesm_training_data_30.csv')
-    cesm_df.rename(columns={'# year':'year'},inplace=True)
     #need to reshape here for data scaling
     # split data into 6 chunks, use 4 for training, 1 for validation, 1 for hold out
     # chunk_size = len((np.array_split(cesm_df, 6, axis=0))[0])

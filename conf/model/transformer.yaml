@@ -25,5 +25,5 @@ model:
 
   # output: ['cSoil','cCwd','cVeg','cLitter','cLeaf','cRoot','cStem','cOther']
   output: ['cSoilAbove1m','cLeaf','cStem','cOther']
-  id: ['# year','lat','lon']
+  id: ['year','lat','lon']
   transformer_model: transformer_model.pt

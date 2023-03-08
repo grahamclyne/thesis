@@ -10,7 +10,8 @@ def main(cfg: DictConfig):
     # t2m lai_lv swvl1 ro lai_hv sp skt evabs stl1 tp total_lai
     era_data = pd.read_csv(f'{cfg.data}/ERA/era_data.csv',index_col=False)
     nfis_data = pd.read_csv(f'{cfg.data}/generated_data/nfis_tree_cover_data.csv')
-
+    era_data = era_data.where(era_data['stl1'] > 0).dropna()
+    nfis_data = nfis_data.where(nfis_data['broadleaf'] > 0).dropna()
     era_data = era_data.rename(columns={'# year':'year'})
     era_data['lat'] = round(era_data['lat'],6)
     nfis_data['lat'] = round(nfis_data['lat'],6)

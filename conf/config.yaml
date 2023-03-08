@@ -1,5 +1,5 @@
 defaults:
-  - model: ann
+  - model: lstm
   - environment: lab
   - _self_
 

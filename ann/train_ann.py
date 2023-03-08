@@ -50,11 +50,6 @@ def main(cfg: omegaconf.DictConfig):
 def load_data(cfg:omegaconf.DictConfig):
     #prepare and scale data
     data = pd.read_csv(f'{cfg.path.data}/cesm_data_variant.csv')
-    cols = data.columns.append(pd.Index(['variant']))
-    data = data.reset_index()
-    data.columns = cols
-
-    data = data.rename(columns={'# year':'year'})
     ds = data[data['year'] < 1984]
     #save 2014 for hold out validation, see 3d_visualization.ipynb
     # final_test = data[data['year'] >= 1984] 

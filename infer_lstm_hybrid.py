@@ -87,8 +87,6 @@ def main(cfg: DictConfig):
     cesm_data = pd.read_csv('data/timeseries_cesm_hold_out_data_30.csv')
     # cesm_data = pd.read_csv(f'{cfg.data}/observed_timeseries30_data.csv')
 
-    cesm_data.rename(columns={'# year':'year'},inplace=True)
-
     cesm_data = cesm_data[cfg.model.input + cfg.model.id]
     # cesm_data = cesm_data.where(cesm_data['year'] > 1984).dropna()
     # cesm_data = cesm_data.iloc[0:300]

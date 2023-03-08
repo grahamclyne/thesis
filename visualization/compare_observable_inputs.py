@@ -27,7 +27,7 @@ def make_cesm_predict_comparison_plot(cesm_df:pd.DataFrame,predicted_df:pd.DataF
 
 @hydra.main(version_base=None, config_path="../conf", config_name="config")
 def main(cfg: DictConfig):
-    cesm_data = pd.read_csv(f'{cfg.data}/cesm_data.csv').groupby('# year').mean()
+    cesm_data = pd.read_csv(f'{cfg.data}/cesm_data.csv').groupby('year').mean()
     observed_input = pd.read_csv(cfg.environment.observed_input)
     observed_input = observed_input[cfg.model.input]
     cesm_data = cesm_data[cfg.model.input]

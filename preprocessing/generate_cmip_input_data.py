@@ -54,8 +54,9 @@ def main(cfg: DictConfig):
         full_df = pd.concat([full_df,df],ignore_index=True)
     full_df['area'] =  full_df.apply(lambda x: getArea(x['lat'],x['lon']),axis=1)
 
-    header = header + ',area'
-    np.savetxt(f'{cfg.data}/cesm_data_variant.csv',np.asarray(full_df),delimiter=',',header=header)
+    header = header + ',variant,area'
+    print(header)
+    np.savetxt(f'{cfg.data}/cesm_data_variant.csv',np.asarray(full_df),delimiter=',',header=header,encoding='utf-8',comments='')
     duration = time.time() - start_time
     print(f'Completed in {duration} seconds.')
 

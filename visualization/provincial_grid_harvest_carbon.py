@@ -22,21 +22,21 @@ def get_box(input):
     return re_bc_boxes
 
 
-@hydra.main(version_base=None, config_path="../conf", config_name="ann_config")
+@hydra.main(version_base=None, config_path="../conf", config_name="config")
 def main(cfg: DictConfig):
     #read in data
-    no_reforestation = pd.read_csv('data/hybrid_no_reforest.csv')
-    total_reforestation = pd.read_csv('data/hybrid_reforest.csv')
-    canada = geopandas.read_file('data/shapefiles/lpr_000b16a_e/lpr_000b16a_e.shp')
-    with open('/Users/gclyne/thesis/provincial_coords.pickle', 'rb') as handle:
+    no_reforestation = pd.read_csv(f'{cfg.data}/hybrid_no_reforest.csv')
+    total_reforestation = pd.read_csv(f'{cfg.data}/hybrid_reforest.csv')
+    canada = geopandas.read_file(f'{cfg.data}/shapefiles/lpr_000b16a_e/lpr_000b16a_e.shp')
+    with open(f'{cfg.data}/provincial_coords.pickle', 'rb') as handle:
         provincial_dict = pickle.load(handle) 
 
     
     no_reforestation = no_reforestation[(no_reforestation['year'] > 1984) & (no_reforestation['year'] < 2015)]
     total_reforestation['agb'] = total_reforestation['cStem'] + total_reforestation['cLeaf'] + total_reforestation['cOther']
     no_reforestation['agb'] = no_reforestation['cStem'] + no_reforestation['cLeaf'] + no_reforestation['cOther']
-    total_reforestation['area'] = total_reforestation.apply(lambda x: getArea(x['lat'],x['lon'],cfg),axis=1)
-    no_reforestation['area'] = no_reforestation.apply(lambda x: getArea(x['lat'],x['lon'],cfg),axis=1)
+    total_reforestation['area'] = total_reforestation.apply(lambda x: getArea(x['lat'],x['lon']),axis=1)
+    no_reforestation['area'] = no_reforestation.apply(lambda x: getArea(x['lat'],x['lon']),axis=1)
     total_reforestation['agb'] = total_reforestation['agb'] * total_reforestation['area'] / 1e9 #to megatonnes
     no_reforestation['agb'] = no_reforestation['agb'] * no_reforestation['area'] / 1e9 # kg to megatonnes
 
@@ -49,10 +49,10 @@ def main(cfg: DictConfig):
     no_bc = pd.merge(no_reforestation,bc,how='inner',left_on=['lat','lon'],right_on=['lat','lon'])
 
 
-    re_bc_2015 = re_bc[re_bc['year'] ==2014].reset_index(drop=True)
-    no_bc_2015 = no_bc[no_bc['year'] ==2014].reset_index(drop=True)
-    observed_input = pd.read_csv('/Users/gclyne/thesis/data/cleaned_observed_ann_input.csv')
-    reforested_input =  pd.read_csv('/Users/gclyne/thesis/data/total_reforestation.csv')
+    re_bc_2015 = re_bc[re_bc['year'] ==2015].reset_index(drop=True)
+    no_bc_2015 = no_bc[no_bc['year'] ==2015].reset_index(drop=True)
+    observed_input = pd.read_csv(f'{cfg.data}/cleaned_observed_ann_input.csv')
+    reforested_input =  pd.read_csv(f'{cfg.data}/total_reforestation.csv')
     observed_input = pd.merge(observed_input,bc,how='inner',left_on=['lat','lon'],right_on=['lat','lon'])
     reforested_input = pd.merge(reforested_input,bc,how='inner',left_on=['lat','lon'],right_on=['lat','lon'])
 

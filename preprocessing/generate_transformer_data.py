@@ -13,11 +13,11 @@ def main(cfg: DictConfig):
     cols = cesm_data.columns.append(pd.Index(['variant']))
     cesm_data = cesm_data.reset_index()
     cesm_data.columns = cols
-    inputs = cfg.model.input + cfg.model.output + ['# year','lat','lon']
+    inputs = cfg.model.input + cfg.model.output + ['year','lat','lon']
     cesm_data = cesm_data[inputs]
-    # hold_out = cesm_data[cesm_data['# year'] >= 2013]
-    # hold_out = hold_out.groupby(['# year','lat','lon']).mean().reset_index()
-    # cesm_data = cesm_data[cesm_data['# year'] < 2013]
+    # hold_out = cesm_data[cesm_data['year'] >= 2013]
+    # hold_out = hold_out.groupby(['year','lat','lon']).mean().reset_index()
+    # cesm_data = cesm_data[cesm_data['year'] < 2013]
     managed_forest_coordinates = readCoordinates(f'{cfg.data}/managed_coordinates.csv',is_grid_file=False)
     seq_len = cfg.model.seq_len
 
