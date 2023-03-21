@@ -26,4 +26,3 @@ class RegressionLSTM(nn.Module):
         out = self.linear(hn[0]).flatten()  # First dim of Hn is num_layers, which is set to 1 above.
         out = out.reshape(-1,len(self.cfg.model.output))
         return out
-    
