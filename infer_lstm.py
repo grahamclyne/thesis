@@ -9,17 +9,16 @@ from lstm_model import RegressionLSTM
 import numpy as np
 
 
-def infer_lstm(cfg,tsl_offset=0):
-    final_input = pd.read_csv(f'{cfg.data}/observed_timeseries30_data.csv')
+def infer_lstm(df,cfg,tsl_offset=0):
     model_name = cfg.run_name
-    final_input = final_input[cfg.model.input +cfg.model.id]
+    df = df[cfg.model.input +cfg.model.id]
     scaler = load(open(f'{cfg.project}/checkpoint/lstm_scaler_{model_name}.pkl', 'rb'))
     # final_input = final_input.where(final_input['tsl'] > 0)
-    final_input['tas_DJF'] = final_input['tas_DJF'].apply(lambda x: x+tsl_offset)
-    final_input['tas_JJA'] = final_input['tas_JJA'].apply(lambda x: x+tsl_offset)
-    final_input['tsl'] = final_input['tsl'].apply(lambda x: x+tsl_offset)
-
-    final_input.loc[:,cfg.model.input ] =scaler.transform(final_input.loc[:,cfg.model.input])
+    # df['tas_DJF'] = df['tas_DJF'].apply(lambda x: x+tsl_offset)
+    # df['tas_JJA'] = df['tas_JJA'].apply(lambda x: x+tsl_offset)
+    # df['tsl'] = df['tsl'].apply(lambda x: x+tsl_offset)
+    df['treeFrac'] = df['treeFrac'].apply(lambda x: x+tsl_offset)
+    df.loc[:,cfg.model.input ] =scaler.transform(df.loc[:,cfg.model.input])
     model = RegressionLSTM(num_sensors=len(cfg.model.input), hidden_units=cfg.model.hidden_units,cfg=cfg)
     checkpoint = T.load(f'{cfg.project}/checkpoint/lstm_checkpoint_{model_name}.pt')
     
@@ -28,8 +27,8 @@ def infer_lstm(cfg,tsl_offset=0):
         checkpoint['model_state_dict'][key.replace('module.', '')] = checkpoint['model_state_dict'].pop(key)
 
     model.load_state_dict(checkpoint['model_state_dict'])
-    final_input = final_input[cfg.model.input + cfg.model.id]
-    ds = CMIPTimeSeriesDataset(final_input,cfg.model.seq_len,len(cfg.model.input) + len(cfg.model.id),cfg)
+    # df = df[cfg.model.input + cfg.model.id]
+    ds = CMIPTimeSeriesDataset(df,cfg.model.seq_len,len(cfg.model.input) + len(cfg.model.id),cfg)
     batch_size = 1
     ldr = T.utils.data.DataLoader(ds,batch_size=batch_size,shuffle=False)
     results = []

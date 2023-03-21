@@ -3,14 +3,14 @@ import time
 import geopandas
 import numpy as np
 import pandas as pd
-from preprocessing.utils import scaleLongitudes, seasonalAverages,clipWithShapeFile,getArea,netcdfToNumpy
+from preprocessing.utils import seasonalAverages,getArea,netcdfToNumpy
 
 import hydra
 from omegaconf import DictConfig
 
 
 def CESMVariables(variant,cfg):
-    shape_file = geopandas.read_file(f'{cfg.environment.shapefiles}/NIR2016_MF.shp', crs="epsg:4326")
+    shape_file = geopandas.read_file(f'{cfg.environment.shapefiles}/{cfg.study_area}.shp', crs="epsg:4326")
     out = []
     header = cfg.model.raw_cmip_variables
     getYearLatLon = True

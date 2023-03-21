@@ -41,7 +41,7 @@ def ERAVariables(shape_file,cfg):
     out = []
     headers = []
     for raw_variable in RAW_ERA_VARIABLES:
-        ds = xr.open_dataset(f'{cfg.environment.era_data}/reprojected/reprojected_{raw_variable}.nc',engine='netcdf4')
+        ds = xr.open_dataset(f'{cfg.data}/ERA/reprojected/reprojected_{raw_variable}.nc',engine='netcdf4')
         ds = ds.fillna(0)
         var = list(ds.keys())[0]
         if(var == 't2m'):
@@ -59,7 +59,7 @@ def ERAVariables(shape_file,cfg):
 
 
 def reprojectNetCDF(file_name,cfg):
-    os.system(f'cdo remapbil,{cfg.environment.era_data}/mygrid {cfg.environment.era_data}/{file_name} {cfg.environment.era_data}/reprojected/reprojected_{file_name}')
+    os.system(f'cdo remapbil,{cfg.data}/ERA/mygrid {cfg.data}/ERA/{file_name} {cfg.data}/ERA/reprojected/reprojected_{file_name}')
 
 
 def transformData(array,header):
@@ -79,14 +79,14 @@ def transformData(array,header):
 def main(cfg: DictConfig):
     start_time = time.time()
     for file in RAW_ERA_VARIABLES:
-        if(not os.path.exists(f'{cfg.environment.era_data}/reprojected/reprojected_{file}.nc')):
+        if(not os.path.exists(f'{cfg.data}/ERA/reprojected/reprojected_{file}.nc')):
             reprojectNetCDF(file,cfg)
-    shape_file = geopandas.read_file(f'{cfg.environment.shapefiles}/NIR2016_MF.shp', crs="epsg:4326")
+    shape_file = geopandas.read_file(f'{cfg.data}/shapefiles/{cfg.study_area}.shp', crs="epsg:4326")
     combined,header = ERAVariables(shape_file,cfg)
     df = transformData(combined,header)
     print(df['tp'].describe())
     print(df.columns)
-    np.savetxt(f'{cfg.environment.era_data}/era_data.csv',np.asarray(df),delimiter=',',header=','.join(df.columns))
+    np.savetxt(f'{cfg.data}/ERA/era_data_{cfg.study_area}.csv',np.asarray(df),delimiter=',',header=','.join(df.columns))
     print(f'Completed in {time.time() - start_time} seconds.')
 
 main()

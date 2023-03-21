@@ -8,8 +8,8 @@ import numpy as np
 def main(cfg: DictConfig):
 
     # t2m lai_lv swvl1 ro lai_hv sp skt evabs stl1 tp total_lai
-    era_data = pd.read_csv(f'{cfg.data}/ERA/era_data.csv',index_col=False)
-    nfis_data = pd.read_csv(f'{cfg.data}/generated_data/nfis_tree_cover_data.csv')
+    era_data = pd.read_csv(f'{cfg.data}/ERA/era_data_{cfg.study_area}.csv',index_col=False)
+    nfis_data = pd.read_csv(f'{cfg.data}/generated_data/nfis_tree_cover_data_{cfg.study_area}.csv')
     era_data = era_data.where(era_data['stl1'] > 0).dropna()
     nfis_data = nfis_data.where(nfis_data['broadleaf'] > 0).dropna()
     era_data = era_data.rename(columns={'# year':'year'})
@@ -40,13 +40,13 @@ def main(cfg: DictConfig):
     
     inputs = cfg.model.input + ['year','lat','lon']
     final_input = final_input[inputs]
-    managed_forest_coordinates = readCoordinates(f'{cfg.data}/managed_coordinates.csv',is_grid_file=False)
+    coordinates = readCoordinates(f'{cfg.data}/{cfg.study_area}_coordinates.csv',is_grid_file=False)
     seq_len = 30
 
 
 
     test_data = pd.DataFrame()
-    for (lat,lon) in managed_forest_coordinates:
+    for (lat,lon) in coordinates:
         lat = round(lat,6)
         lon = round(lon,7)
         grid_cell = final_input[np.logical_and(final_input['lat'] == lat,final_input['lon'] == lon)]

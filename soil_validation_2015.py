@@ -60,6 +60,7 @@ cesm_data = pd.read_csv('data/cesm_data_variant.csv')
 inferred = pd.read_csv('data/forest_carbon_observed_lstm.csv')
 hold_out_raw = pd.read_csv('data/forest_carbon_cesm_lstm.csv')
 nfis_data = pd.read_csv('data/nfis_agb.csv')
+reforested = pd.read_csv('reforest_infer.csv')
 
 #prep cesm data
 cesm_data = cesm_data.where(cesm_data['year'] > 1984).dropna()
@@ -78,6 +79,13 @@ nfis_data['agb'] = nfis_data['agb'] / 10 #ha to m2
 nfis_data['lat'] = round(nfis_data['lat'],6)
 
 
+#prep reforested data 
+reforested = reforested.rename(columns={'year_x':'year','cSoilAbove1m_x':'cSoilAbove1m'})
+reforested = reforested[reforested['year'] == 2014]
+reforested['lat'] = round(reforested['lat'],6)
+reforested = reforested.groupby(['year','lat','lon']).mean().reset_index()
+
+
 inferred = inferred[inferred['year'] == 2014]
 # cesm_data = cesm_data.rename(columns={'cSoilAbove1m_x':'cSoilAbove1m'})
 # cesm_data.drop(columns=['cSoilAbove1m_y'],inplace=True)
@@ -90,13 +98,15 @@ inferred.set_index(['lat','lon'],inplace=True)
 cesm_data.set_index(['lat','lon'],inplace=True)
 soil_pdf.set_index(['lat','lon'],inplace=True)
 nfis_data.set_index(['lat','lon'],inplace=True)
+reforested.set_index(['lat','lon'],inplace=True)
 hold_out = hold_out.add_suffix('_hold_out')
 inferred = inferred.add_suffix('_inferred')
 cesm_data = cesm_data.add_suffix('_cesm_data')
 soil_pdf = soil_pdf.add_suffix('_soil_pdf')
 nfis_data = nfis_data.add_suffix('_nfis_data')
+reforested = reforested.add_suffix('_reforested')
 
-validation_df = pd.concat([hold_out,inferred,cesm_data,soil_pdf,nfis_data],axis=1,join='inner')
+validation_df = pd.concat([hold_out,inferred,cesm_data,soil_pdf,nfis_data,reforested],axis=1,join='inner')
 # plot3dCanada(cesm_data,'cSoilAbove1m','CESM2 Reported Soil Carbon')
 # plot3dCanada(soil_pdf,'soil','WWF Canada Reported Soil Carbon')
 # plot3dCanada(inferred,'cSoilAbove1m','LSTM Predicted Soil Carbon (ERA)')
@@ -117,6 +127,8 @@ validation_df.reset_index(inplace=True)
 
 # merged['agb_x'] = merged['agb_x'] * merged['area'] / 1e9
 # merged['agb_y'] = merged['agb_y'] * merged['area'] / 1e9
+
+#prep data scale to mt c 
 for suffix in ['_hold_out','_inferred','_cesm_data','_soil_pdf','_nfis_data']:
     if(suffix != '_soil_pdf'):
         if(suffix != '_nfis_data'):
@@ -130,16 +142,16 @@ for suffix in ['_hold_out','_inferred','_cesm_data','_soil_pdf','_nfis_data']:
 # print(len(soil_pdf),len(cesm_data),len(inferred),len(hold_out))
 # print(f'reported: {reported_sum}  cesm: {cesm_sum} lstm_predicted_with_observed: {lstm_predicted_with_observed_sum}')
 # print(f'cesm rmse: {cesm_rmse} lstm rmse: {lstm_rmse}')
-for suffix in ['_hold_out','_inferred','_soil_pdf','_nfis_data']:
+for suffix in ['_hold_out','_inferred','_soil_pdf','_nfis_data','_cesm_data','_reforested']:
     if(suffix != '_soil_pdf'):
-        print(f'{suffix} AGB r2,rmse,sum : ',metrics.r2_score(validation_df['agb_cesm_data'],validation_df['agb'+suffix]),
-              math.sqrt(metrics.mean_squared_error(validation_df['agb_cesm_data'],validation_df['agb'+suffix])),validation_df['agb'+suffix].sum())
+        print(f'{suffix} AGB r2,rmse,sum : ',metrics.r2_score(validation_df['agb_nfis_data'],validation_df['agb'+suffix]),
+              math.sqrt(metrics.mean_squared_error(validation_df['agb_nfis_data'],validation_df['agb'+suffix])),validation_df['agb'+suffix].sum())
         # print(f'AGB rmse {suffix}: ',)))
         # print(f'AGB sum {suffix}: ',validation_df['agb'+suffix].sum())
 
     if(suffix != '_nfis_data'):
-        print(f'{suffix} SOIL r2 rmse sum : ',metrics.r2_score(validation_df['cSoilAbove1m_cesm_data'],validation_df['cSoilAbove1m'+suffix]),
-              math.sqrt(metrics.mean_squared_error(validation_df['cSoilAbove1m_cesm_data'],validation_df['cSoilAbove1m'+suffix])),validation_df['cSoilAbove1m'+suffix].sum())
+        print(f'{suffix} SOIL r2 rmse sum : ',metrics.r2_score(validation_df['cSoilAbove1m_soil_pdf'],validation_df['cSoilAbove1m'+suffix]),
+              math.sqrt(metrics.mean_squared_error(validation_df['cSoilAbove1m_soil_pdf'],validation_df['cSoilAbove1m'+suffix])),validation_df['cSoilAbove1m'+suffix].sum())
         # print(f'SOIL rmse {suffix}: '))
         # print(f'SOIL sum {suffix}: ')
 

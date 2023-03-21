@@ -28,6 +28,8 @@ def readCoordinates(file_path:str,is_grid_file:bool) -> list:
     with open(f'{file_path}', newline='') as csvfile:
         spamreader = csv.reader(csvfile, delimiter=',')
         for row in spamreader:
+            if(row[0] == 'lat' or row[0] == 'lon'):
+                continue
             if(is_grid_file):
                 coordinates.append(float(row[0]))
             else:
@@ -69,15 +71,15 @@ def find_nearest_index(array, value):
     return int(idx)
 
 
-def getCoordinates(lat:float,lon):
+def getCoordinates(lat:float,lon:float,cfg):
     latitudes = []
     longitudes = []
-    path = '/Users/gclyne/thesis/data'
-    with open(f'{path}/grid_latitudes.csv',newline='') as csvfile:
+    # path = '/Users/gclyne/thesis/data'
+    with open(f'{cfg.data}/grid_latitudes.csv',newline='') as csvfile:
         reader = csv.reader(csvfile,delimiter=',')
         for row in reader:
             latitudes.append(float(row[0]))
-    with open(f'{path}/grid_longitudes.csv',newline='') as csvfile:
+    with open(f'{cfg.data}/grid_longitudes.csv',newline='') as csvfile:
         reader = csv.reader(csvfile,delimiter=',')
         for row in reader:
             longitudes.append(float(row[0]))
@@ -106,7 +108,7 @@ def clipWithShapeFile(netcdf_file,variable,shape_file):
     netcdf_file = netcdf_file[variable]
     netcdf_file.rio.set_spatial_dims(x_dim="lon", y_dim="lat", inplace=True)
     netcdf_file.rio.write_crs("epsg:4326", inplace=True)
-    clipped = netcdf_file.rio.clip([shape_file.geometry.apply(mapping)[0]], shape_file.crs,drop=True)
+    clipped = netcdf_file.rio.clip(shape_file.geometry.apply(lambda x: x.__geo_interface__), shape_file.crs,drop=True)
     return clipped
 
 
@@ -195,3 +197,19 @@ def scaleVariable(df:pd.DataFrame,variable:str):
         temp = df[variable]
     # area = df.apply(lambda x: getArea(x['lat'],x['lon']),axis=1)
     return temp * df['area'] / 1e9 #to megatonnes
+
+def getGeometryBoxes(input:pd.DataFrame):
+    coords = list(zip(input.lat,input.lon))
+    boxes = []
+    ordered_lats = pd.read_csv(f'data/grid_latitudes.csv',header=None)
+    ordered_lons = pd.read_csv(f'data/grid_longitudes.csv',header=None)
+    for bottom,left in coords:
+        bottom = round(bottom,6)
+        lat_index = find_nearest_index(ordered_lats,bottom) + 1
+        top = ordered_lats.iloc[lat_index][0]
+        lon_index = find_nearest_index(ordered_lons,left) + 1
+        right = ordered_lons.iloc[lon_index][0]
+        bbox = box(left,bottom,right,top)
+        boxes.append(bbox)
+    return boxes
+

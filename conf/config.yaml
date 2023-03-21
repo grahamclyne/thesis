@@ -8,3 +8,6 @@ data: '/Users/gclyne/thesis/data'
 entity: 'gclyne'
 wandb_project: 'dist-lstm-land-model'
 run_name: 'autumn-bee-23'
+study_area: 'ecozones'
+preprocess_data_set: 'nfis_land_cover'
+num_cores: 2
