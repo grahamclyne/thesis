@@ -28,7 +28,16 @@ from pickle import dump
 from transformer.transformer_model import CMIPTimeSeriesDataset
 import omegaconf
 import time
-
+def split_data(df):
+    latlons = df[['lat','lon']].drop_duplicates()
+    train = latlons.sample(frac=0.7)
+    remainder = latlons.drop(train.index)
+    val = remainder.sample(frac=0.66)
+    test = remainder.drop(val.index)
+    train = pd.merge(left=df,right=train,how='inner',on=['lat','lon'])
+    val = pd.merge(left=df,right=val,how='inner',on=['lat','lon'])
+    test = pd.merge(left=df,right=test,how='inner',on=['lat','lon'])
+    return train,val,test
 
 def get_training_data(cfg,run):
     cesm_df = pd.read_csv(f'{cfg.data}/timeseries_cesm_training_data_30.csv')
@@ -37,17 +46,18 @@ def get_training_data(cfg,run):
     # chunk_size = len((np.array_split(cesm_df, 6, axis=0))[0])
     # for var in cfg.model.output:
     #     cesm_df[var] = cesm_df[var].apply(lambda x: x*1000000000)
-    chunk_size = 12000
-    cesm_df = cesm_df[cfg.model.input + cfg.model.output + cfg.model.id]
-    cesm_df = cesm_df.to_numpy()
-    cesm_df = cesm_df.reshape(-1,cfg.model.seq_len,len(cfg.model.input + cfg.model.output + cfg.model.id))
-    np.random.shuffle(cesm_df)
-    cesm_df = cesm_df.reshape(-1,len(cfg.model.input + cfg.model.output + cfg.model.id))
-    cesm_df = pd.DataFrame(cesm_df)
-    cesm_df.columns = cfg.model.input + cfg.model.output + cfg.model.id
-    # hold_out = cesm_df[-chunk_size:]
-    # train_ds = cesm_df[:-chunk_size]
-    train_ds = cesm_df
+    # chunk_size = 12000
+    # cesm_df = cesm_df[cfg.model.input + cfg.model.output + cfg.model.id]
+    # cesm_df = cesm_df.to_numpy()
+    # cesm_df = cesm_df.reshape(-1,cfg.model.seq_len,len(cfg.model.input + cfg.model.output + cfg.model.id))
+    # np.random.shuffle(cesm_df)
+    # cesm_df = cesm_df.reshape(-1,len(cfg.model.input + cfg.model.output + cfg.model.id))
+    # cesm_df = pd.DataFrame(cesm_df)
+    # cesm_df.columns = cfg.model.input + cfg.model.output + cfg.model.id
+    # # hold_out = cesm_df[-chunk_size:]
+    # # train_ds = cesm_df[:-chunk_size]
+    # train_ds = cesm_df
+    train_ds,val_ds,test_ds = split_data(cesm_df)
     #fix that you are modifying targets here too
     scaler = preprocessing.StandardScaler().fit(train_ds.loc[:,cfg.model.input])
     # hold_out_scaler = preprocessing.StandardScaler().fit(hold_out.loc[:,cfg.model.input])
@@ -59,13 +69,19 @@ def get_training_data(cfg,run):
     # dump(hold_out_scaler, open(f'{cfg.environment.checkpoint}/lstm_hold_out_scaler_{wandb.run.name}.pkl','wb'))
     # hold_out = CMIPTimeSeriesDataset(hold_out,cfg.model.seq_len,len(cfg.model.input + cfg.model.output + cfg.model.id),cfg)
     train_ds = CMIPTimeSeriesDataset(train_ds,cfg.model.seq_len,len(cfg.model.input + cfg.model.output + cfg.model.id),cfg)
-    train,validation = torch.utils.data.random_split(train_ds, [0.8,0.2], generator=torch.Generator().manual_seed(0))
-    train_sampler = torch.utils.data.DistributedSampler(train)
+    val_ds = CMIPTimeSeriesDataset(val_ds,cfg.model.seq_len,len(cfg.model.input + cfg.model.output + cfg.model.id),cfg)
+    test_ds = CMIPTimeSeriesDataset(test_ds,cfg.model.seq_len,len(cfg.model.input + cfg.model.output + cfg.model.id),cfg)
 
-    train_ldr = torch.utils.data.DataLoader(train,batch_size=cfg.model.batch_size,shuffle=False, sampler=train_sampler)#train sample shuffles for us
-    validation_ldr = torch.utils.data.DataLoader(validation,batch_size=cfg.model.batch_size,shuffle=True)
+    # train,validation = torch.utils.data.random_split(train_ds, [0.8,0.2], generator=torch.Generator().manual_seed(0))
+    train_sampler = torch.utils.data.DistributedSampler(train_ds)
+    validation_sampler = torch.utils.data.DistributedSampler(val_ds)
+    test_sampler = torch.utils.data.DistributedSampler(test_ds)
+    train_ldr = torch.utils.data.DataLoader(train_ds,batch_size=cfg.model.batch_size,shuffle=False, sampler=train_sampler)#train sample shuffles for us
+    validation_ldr = torch.utils.data.DataLoader(val_ds,batch_size=cfg.model.batch_size,shuffle=False,sampler=validation_sampler)
+    test_ldr = torch.utils.data.DataLoader(test_ds,batch_size=cfg.model.batch_size,shuffle=False,sampler=test_sampler)
+
     # hold_out_ldr = torch.utils.data.DataLoader(hold_out,batch_size=cfg.model.batch_size,shuffle=True)
-    return train_ldr,validation_ldr
+    return train_sampler,train_ldr,validation_sampler,validation_ldr,test_sampler,test_ldr
 
 
 
@@ -108,13 +124,17 @@ def train(cfg, run=None):
 
 
 
-    train_loader, validation_loader = get_training_data(cfg,run)
+    train_sampler,train_loader,validation_sampler,validation_loader,test_sampler,test_loader = get_training_data(cfg,run)
 
     total_step = len(train_loader)
     for epoch in range(cfg.model.epochs):
         total_start = time.time()
 
         batch_loss = []
+        train_sampler.set_epoch(epoch)
+        validation_sampler.set_epoch(epoch)
+        test_sampler.set_epoch(epoch)
+        model.train()
         for ii,(src,tgt,id) in enumerate(train_loader):
 
             # Forward pass
@@ -135,14 +155,16 @@ def train(cfg, run=None):
                     )
                 )
             if do_log:
-                run.log({"batch_loss": loss})
+                run.log({"train_batch_loss": loss})
         valid_batch_loss = []
+
+        #Validation data
+        model.eval()
         for ii,(srd,tgt,id) in enumerate(validation_loader):
             pred_y = model(srd.float())
             loss = criterion(pred_y, tgt.float())
             loss = float(loss)
             valid_batch_loss.append(loss)
-
             if (ii + 1) % 100 == 0 and is_master:
                 print(
                     "Epoch [{}/{}], Step [{}/{}], Validation Loss: {:.4f}".format(
@@ -151,11 +173,19 @@ def train(cfg, run=None):
                 )
             if do_log:
                 run.log({"valid_batch_loss": loss})
+        test_batch_loss = []
 
+    #test data
+    if is_master:
+        for ii,(srd,tgt,id) in enumerate(test_loader):
+            pred_y = model(srd.float())
+            loss = criterion(pred_y, tgt.float())
+            loss = float(loss)
+            test_batch_loss.append(loss)
+            if do_log:
+                run.log({"test_batch_loss": loss})
         if do_log:
             run.log({"epoch": epoch, "loss": np.mean(batch_loss),'valid_loss':np.mean(valid_batch_loss),'epoch_time':time.time() - total_start})
-        if is_master:
-            torch.save({'model_state_dict': model.state_dict(),'optimizer_state_dict': optimizer.state_dict(),}, f'{cfg.environment.checkpoint}/lstm_checkpoint_{wandb.run.name}.pt')
 
 
 def setup_run(cfg):
