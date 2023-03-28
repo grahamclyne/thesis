@@ -131,55 +131,38 @@ def train(cfg, run=None):
     total_step = len(train_loader)
     for epoch in range(cfg.model.epochs):
         total_start = time.time()
-
         batch_loss = []
         train_sampler.set_epoch(epoch)
         validation_sampler.set_epoch(epoch)
         test_sampler.set_epoch(epoch)
         model.train()
-        for ii,(src,tgt,id) in enumerate(train_loader):
-
-            # Forward pass
+        for _,(src,tgt,_) in enumerate(train_loader):
             pred_y = model(src.float())
             loss = criterion(pred_y, tgt.float())
-            # Backward and optimize
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-
             loss = float(loss)
             batch_loss.append(loss)
-
-            if (ii + 1) % 100 == 0 and is_master:
-                print(
-                    "Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}".format(
-                        epoch + 1, 10, ii + 1, total_step, loss
-                    )
-                )
             if do_log:
                 run.log({"train_batch_loss": loss})
         valid_batch_loss = []
 
         #Validation data
         model.eval()
-        for ii,(srd,tgt,id) in enumerate(validation_loader):
+        for _,(srd,tgt,_) in enumerate(validation_loader):
             pred_y = model(srd.float())
             loss = criterion(pred_y, tgt.float())
             loss = float(loss)
             valid_batch_loss.append(loss)
-            if (ii + 1) % 100 == 0 and is_master:
-                print(
-                    "Epoch [{}/{}], Step [{}/{}], Validation Loss: {:.4f}".format(
-                        epoch + 1, 10, ii + 1, total_step, loss
-                    )
-                )
             if do_log:
                 run.log({"valid_batch_loss": loss})
         test_batch_loss = []
-
+        if do_log:
+            run.log({"epoch": epoch, 'epoch_time':time.time() - total_start})
     #test data
     if is_master:
-        for ii,(srd,tgt,id) in enumerate(test_loader):
+        for _,(srd,tgt,_) in enumerate(test_loader):
             pred_y = model(srd.float())
             loss = criterion(pred_y, tgt.float())
             loss = float(loss)

@@ -1,10 +1,10 @@
 #!/bin/bash
 
 
-#SBATCH --time=12:00:00
+#SBATCH --time=16:00:00
 #SBATCH --account=def-dmatthew
 #SBATCH --cpus-per-task=8
-#SBATCH --mem=16G
+#SBATCH --mem=48G
 module load python/3.9
 module load geos
 module load proj
