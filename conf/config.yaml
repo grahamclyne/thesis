@@ -11,3 +11,5 @@ run_name: 'autumn-bee-23'
 study_area: 'ecozones'
 preprocess_data_set: 'nfis_land_cover'
 num_cores: 2
+raw_cmip_variables: ['cOther','cCwd','cVeg','cLitter','cLeaf','cRoot','evspsblsoi','lai','tsl','mrro','mrsos','grassFrac','shrubFrac','cropFrac','baresoilFrac','residualFrac','treeFrac','shrubFrac','cSoil','cStem','wetlandFrac','ps','pr','tas']
+raw_era_variables: ['2m_temperature', 'evaporation_from_bare_soil', 'leaf_area_index_high_vegetation','leaf_area_index_low_vegetation', 'runoff', 'skin_temperature','soil_temperature_level_1', 'surface_pressure', 'total_precipitation','volumetric_soil_water_layer_1']

@@ -5,42 +5,15 @@ import numpy as np
 from preprocessing.utils import netcdfToNumpy
 import xarray as xr
 import pandas as pd
-from preprocessing.constants import RAW_ERA_VARIABLES
 from preprocessing.utils import seasonalAverages
 import hydra
 from omegaconf import DictConfig
-
-
-
-
-
-# def combineERANetcdf(file_paths:list,shape_file:geopandas.GeoDataFrame,cfg) -> np.ndarray :
-#     out = np.empty(0)
-#     getUniqueKey = True
-#     headers = []
-#     for file_index in range(len(file_paths)):
-#         print(file_paths[file_index])
-#         ds = xr.open_dataset(f'{cfg.environment.era_data}/reprojected/{file_paths[file_index]}',engine='netcdf4')
-#         var = list(ds.keys())[0]
-#         headers.append(var)
-#         ds = ds.fillna(0)
-#         arr = netcdfToNumpy(ds,var,shape_file,getUniqueKey)
-#         getUniqueKey = False
-#         #if array is empty, set first variable
-#         if(len(out) == 0):
-#             out = arr.reshape(-1,4)
-#         else:
-#             print(arr[:,0].reshape(-1,1))
-#             out = np.concatenate((out,arr[:,0].reshape(-1,1)),1)
-#         ds.close()
-#     return out,headers
-
 
 def ERAVariables(shape_file,cfg):
     getYearLatLon = True
     out = []
     headers = []
-    for raw_variable in RAW_ERA_VARIABLES:
+    for raw_variable in cfg.raw_era_variables:
         ds = xr.open_dataset(f'{cfg.data}/ERA/reprojected/reprojected_{raw_variable}.nc',engine='netcdf4')
         ds = ds.fillna(0)
         var = list(ds.keys())[0]
@@ -78,7 +51,7 @@ def transformData(array,header):
 @hydra.main(version_base=None, config_path="../conf", config_name="config")
 def main(cfg: DictConfig):
     start_time = time.time()
-    for file in RAW_ERA_VARIABLES:
+    for file in cfg.raw_era_variables:
         if(not os.path.exists(f'{cfg.data}/ERA/reprojected/reprojected_{file}.nc')):
             reprojectNetCDF(file,cfg)
     shape_file = geopandas.read_file(f'{cfg.data}/shapefiles/{cfg.study_area}.shp', crs="epsg:4326")

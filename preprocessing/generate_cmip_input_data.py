@@ -12,11 +12,11 @@ from omegaconf import DictConfig
 def CESMVariables(variant,cfg):
     shape_file = geopandas.read_file(f'{cfg.environment.shapefiles}/{cfg.study_area}.shp', crs="epsg:4326")
     out = []
-    header = cfg.model.raw_cmip_variables
+    header = cfg.raw_cmip_variables
     getYearLatLon = True
     #replace tas with seasons
     header = header[:header.index('tas')] + ['tas_DJF','tas_JJA','tas_MAM','tas_SON'] + header[header.index('tas')+1:]     
-    for var in cfg.model.raw_cmip_variables:
+    for var in cfg.raw_cmip_variables:
         ds = xr.open_mfdataset(f'{cfg.environment.cesm}/{var}*r{variant}i1p1f1*.nc',parallel=True)
         if(var == 'tas'):
             out.extend(seasonalAverages(ds,var,shape_file,'CESM'))

@@ -15,4 +15,4 @@ source ~/ENV/bin/activate
 
 
 
-python -m preprocessing.generation_runner environment=compute_canada 
+python -m preprocessing.generation_runner environment=compute_canada project=/home/gclyne/projects/def-dmatthew/gclyne/thesis data=/home/gclyne/scratch
