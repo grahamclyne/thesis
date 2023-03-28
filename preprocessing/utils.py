@@ -87,9 +87,9 @@ def getCoordinates(lat:float,lon:float,cfg):
     next_lon = longitudes[find_nearest_index(longitudes,lon) + 1]
     return next_lat,next_lon
 
-def getArea(lat,lon) -> float:
+def getArea(lat,lon,cfg) -> float:
     #returns metre squared
-    next_lat,next_lon = getCoordinates(lat,lon)
+    next_lat,next_lon = getCoordinates(lat,lon,cfg)
     poly = Polygon([(lon,next_lat),(lon,lat),(next_lon,lat),(next_lon,next_lat)])
     #put in counterclockwise rotation otherwise does not work
     geod = Geod(ellps="WGS84") #assume ellipsoid here

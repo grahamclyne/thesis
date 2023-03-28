@@ -15,5 +15,4 @@ source ~/ENV/bin/activate
 
 
 
-#python ${PROJECT_PATH}/other/generate_nfis_data.py
-python ${PROJECT_PATH}/other/generate_harvest_data.py
+python -m preprocessing.generation_runner environment=compute_canada 
