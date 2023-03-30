@@ -189,5 +189,5 @@ def main(cfg: DictConfig):
 
     train(cfg, run)
 
-
-main()
+if __name__ == "__main__":
+    main()
