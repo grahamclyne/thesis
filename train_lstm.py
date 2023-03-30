@@ -11,23 +11,53 @@ import wandb
 import torch
 import numpy as np
 from lstm_model import RegressionLSTM
-from train_lstm_dist import get_training_data
+from train_lstm_dist import split_data
+from transformer.transformer_model  import CMIPTimeSeriesDataset
+
+def get_training_data(cfg,run):
+    cesm_df = pd.read_csv(f'{cfg.data}/timeseries_cesm_training_data_30.csv')
+    train_ds,val_ds,test_ds = split_data(cesm_df)
+    #fix that you are modifying targets here too
+    scaler = preprocessing.StandardScaler().fit(train_ds.loc[:,cfg.model.input])
+    # hold_out_scaler = preprocessing.StandardScaler().fit(hold_out.loc[:,cfg.model.input])
+    train_ds.loc[:,cfg.model.input] = scaler.transform(train_ds.loc[:,cfg.model.input])
+    val_ds.loc[:,cfg.model.input] = scaler.transform(val_ds.loc[:,cfg.model.input])
+    test_ds.loc[:,cfg.model.input] = scaler.transform(test_ds.loc[:,cfg.model.input])
+    # train_ds.loc[:,cfg.model.output] = out_scaler.transform(train_ds.loc[:,cfg.model.output])
+    # hold_out.loc[:,cfg.model.input] = scaler.transform(hold_out.loc[:,cfg.model.input])
+    if run != None:
+        dump(scaler, open(f'{cfg.environment.checkpoint}/lstm_scaler_{run.name}.pkl','wb'))
+    # dump(hold_out_scaler, open(f'{cfg.environment.checkpoint}/lstm_hold_out_scaler_{wandb.run.name}.pkl','wb'))
+    # hold_out = CMIPTimeSeriesDataset(hold_out,cfg.model.seq_len,len(cfg.model.input + cfg.model.output + cfg.model.id),cfg)
+    train_ds = CMIPTimeSeriesDataset(train_ds,cfg.model.seq_len,len(cfg.model.input + cfg.model.output + cfg.model.id),cfg)
+    val_ds = CMIPTimeSeriesDataset(val_ds,cfg.model.seq_len,len(cfg.model.input + cfg.model.output + cfg.model.id),cfg)
+    test_ds = CMIPTimeSeriesDataset(test_ds,cfg.model.seq_len,len(cfg.model.input + cfg.model.output + cfg.model.id),cfg)
+
+    # train,validation = torch.utils.data.random_split(train_ds, [0.8,0.2], generator=torch.Generator().manual_seed(0))
+    # train_sampler = torch.utils.data.DistributedSampler(train_ds)
+    # validation_sampler = torch.utils.data.DistributedSampler(val_ds)
+    # test_sampler = torch.utils.data.DistributedSampler(test_ds)
+    train_ldr = torch.utils.data.DataLoader(train_ds,batch_size=cfg.model.batch_size,shuffle=True)
+    validation_ldr = torch.utils.data.DataLoader(val_ds,batch_size=cfg.model.batch_size,shuffle=True)
+    test_ldr = torch.utils.data.DataLoader(test_ds,batch_size=cfg.model.batch_size,shuffle=True)
+
+    # hold_out_ldr = torch.utils.data.DataLoader(hold_out,batch_size=cfg.model.batch_size,shuffle=True)
+    return train_ldr,validation_ldr,test_ldr
+
+
+
 @hydra.main(version_base=None, config_path="conf",config_name='config')
 def main(cfg: DictConfig):
     # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     model = RegressionLSTM(num_sensors=len(cfg.model.input), hidden_units=cfg.model.hidden_units,cfg=cfg).cuda()
     # Define Loss, Optimizer
     loss_function = nn.MSELoss().cuda()
-    wandb.init(project="land-carbon-gpu", entity="gclyne",config=omegaconf.OmegaConf.to_container(cfg, resolve=True, throw_on_missing=True))
-    optimizer = torch.optim.Adam(model.parameters(), lr=cfg.model.learning_rate) 
-    run = 'single'
-    train_sampler,train_loader,validation_sampler,validation_loader,test_sampler,test_loader = get_training_data(cfg,run)
+    run = wandb.init(project="land-carbon-gpu", entity="gclyne",config=omegaconf.OmegaConf.to_container(cfg, resolve=True, throw_on_missing=True))
+    optimizer = torch.optim.Adam(model.parameters(), lr=cfg.model.lr)
+    train_loader,validation_loader,test_loader = get_training_data(cfg,run)
 
     for epoch_count in range(cfg.model.epochs):
         total_start = time.time()
-        train_sampler.set_epoch(epoch_count)
-        validation_sampler.set_epoch(epoch_count)
-        test_sampler.set_epoch(epoch_count)
         print('Epoch:',epoch_count)
         train_loss = 0
         model.train()
@@ -40,7 +70,7 @@ def main(cfg: DictConfig):
             wandb.log({"training_loss": loss})
             loss.backward() #compute gradient
             optimizer.step() #take step based on gradient
-            train_loss += loss.item() 
+            train_loss += loss.item()
         wandb.log({'total_training_loss':train_loss})
 
         model.eval()
