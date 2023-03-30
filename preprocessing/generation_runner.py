@@ -2,6 +2,7 @@ import time
 import csv
 from preprocessing.generate_nfis_biomass import NFIS_Biomass
 from preprocessing.generate_nfis_data import NFIS_Land_Cover
+from preprocessing.generate_regrowth_data import NFIS_Regrowth
 from preprocessing.utils import readCoordinates
 import hydra
 from omegaconf import DictConfig
@@ -22,7 +23,8 @@ def main(cfg: DictConfig):
         data_set = NFIS_Biomass(cfg)
     if(cfg.preprocess_data_set == 'nfis_land_cover'):
         data_set = NFIS_Land_Cover(cfg)
-
+    if(cfg.preprocess_data_set == 'regrowth'):
+        data_set = NFIS_Regrowth(cfg)
     observable_rows = open(data_set.output_file_path,'w')
     writer = csv.writer(observable_rows)
     writer.writerow(data_set.columns)

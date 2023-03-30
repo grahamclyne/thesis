@@ -1,6 +1,5 @@
 import multiprocessing
 from preprocessing.utils import clipNFIS,getCoordinates
-import preprocessing.config as config
 import multiprocessing
 import rioxarray
 
@@ -22,7 +21,10 @@ class NFIS_Biomass():
         return row
 
     def generate_data(self,coordinates,writer,num_cores):
-        nfis_tif = rioxarray.open_rasterio(f'{self.cfg.data}/CA_forest_total_biomass_2015_NN/CA_forest_total_biomass_2015.tif',lock=False)
+        if(self.cfg.data == '/Users/gclyne/thesis/data'):
+            nfis_tif = rioxarray.open_rasterio(f'{self.cfg.data}/NFIS/CA_forest_total_biomass_2015_NN/CA_forest_total_biomass_2015.tif',lock=False)
+        else:
+            nfis_tif = rioxarray.open_rasterio(f'{self.cfg.data}/CA_forest_total_biomass_2015_NN/CA_forest_total_biomass_2015.tif',lock=False)
         x = iter(coordinates)
         p = multiprocessing.Pool(num_cores)
         with p:

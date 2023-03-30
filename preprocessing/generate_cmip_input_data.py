@@ -52,7 +52,7 @@ def main(cfg: DictConfig):
         #convert ndarray to array and save 
         df['variant'] = variant
         full_df = pd.concat([full_df,df],ignore_index=True)
-    full_df['area'] =  full_df.apply(lambda x: getArea(x['lat'],x['lon']),axis=1)
+    full_df['area'] =  full_df.apply(lambda x: getArea(x['lat'],x['lon'],cfg),axis=1)
 
     header = header + ',variant,area'
     print(header)
