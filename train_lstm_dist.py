@@ -41,7 +41,7 @@ def split_data(df):
 
 def get_training_data(cfg,run):
     cesm_df = pd.read_csv(f'{cfg.data}/timeseries_cesm_training_data_30.csv')
-    ecozones_coords = pd.read_csv('data/ecozones_coordinates.csv')
+    ecozones_coords = pd.read_csv(f'{cfg.data}/ecozones_coordinates.csv')
     # ecozones_coords = ecozones_coords[ecozones_coords['zone'] in ['Boreal Cordillera','Boreal PLain', 'Boreal Shield']]
     merged = pd.merge(cesm_df,ecozones_coords,on=['lat','lon'],how='inner')
 
