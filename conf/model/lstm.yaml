@@ -8,7 +8,7 @@ seq_len: 30
 tsl_offset: 0
 # input: ['tsl','ps','pr','treeFrac','tas_DJF', 'tas_MAM', 'tas_JJA', 'tas_SON']
 
-input: ['ps','tsl','treeFrac','pr','tas_DJF','tas_JJA']
+input: ['ps','tsl','treeFrac','pr','tas_DJF','tas_JJA','zone']
   #input: ['ps','treeFrac','tas_DJF', 'tas_MAM', 'tas_JJA', 'tas_SON','pr']
   #input: ['treeFrac','tas_DJF','tas_JJA']
   # output: ['cSoil','cCwd','cVeg','cLitter','cLeaf','cRoot','cStem','cOther','cSoilAbove1m']

@@ -41,13 +41,17 @@ def split_data(df):
 
 def get_training_data(cfg,run):
     cesm_df = pd.read_csv(f'{cfg.data}/timeseries_cesm_training_data_30.csv')
+    ecozones_coords = pd.read_csv('data/ecozones_coordinates.csv')
+    # ecozones_coords = ecozones_coords[ecozones_coords['zone'] in ['Boreal Cordillera','Boreal PLain', 'Boreal Shield']]
+    merged = pd.merge(cesm_df,ecozones_coords,on=['lat','lon'],how='inner')
+
     #need to reshape here for data scaling
     # split data into 6 chunks, use 4 for training, 1 for validation, 1 for hold out
     # chunk_size = len((np.array_split(cesm_df, 6, axis=0))[0])
     # for var in cfg.model.output:
     #     cesm_df[var] = cesm_df[var].apply(lambda x: x*1000000000)
     # chunk_size = 12000
-    # cesm_df = cesm_df[cfg.model.input + cfg.model.output + cfg.model.id]
+    merged = merged[cfg.model.input + cfg.model.output + cfg.model.id]
     # cesm_df = cesm_df.to_numpy()
     # cesm_df = cesm_df.reshape(-1,cfg.model.seq_len,len(cfg.model.input + cfg.model.output + cfg.model.id))
     # np.random.shuffle(cesm_df)
@@ -57,7 +61,7 @@ def get_training_data(cfg,run):
     # # hold_out = cesm_df[-chunk_size:]
     # # train_ds = cesm_df[:-chunk_size]
     # train_ds = cesm_df
-    train_ds,val_ds,test_ds = split_data(cesm_df)
+    train_ds,val_ds,test_ds = split_data(merged)
     #fix that you are modifying targets here too
     scaler = preprocessing.StandardScaler().fit(train_ds.loc[:,cfg.model.input])
     # hold_out_scaler = preprocessing.StandardScaler().fit(hold_out.loc[:,cfg.model.input])
@@ -136,9 +140,17 @@ def train(cfg, run=None):
         validation_sampler.set_epoch(epoch)
         test_sampler.set_epoch(epoch)
         model.train()
-        for _,(src,tgt,_) in enumerate(train_loader):
+        for _,(src,tgt,id) in enumerate(train_loader):
+
             pred_y = model(src.float())
             loss = criterion(pred_y, tgt.float())
+            if do_log:
+                print(id)
+                print(pred_y[0:20])
+                print(tgt[0:20])
+                print(src[0:20])
+                print(src.shape)
+                print(tgt.shape)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
@@ -178,8 +190,6 @@ def setup_run(cfg):
         run = wandb.init(entity=cfg.entity,project=cfg.wandb_project,config=omegaconf.OmegaConf.to_container(cfg, resolve=True, throw_on_missing=True))
     else:
         run = None
-    print(run)
-    print(os.environ['LOCAL_RANK'])
     return run
 
 @hydra.main(version_base=None, config_path="conf",config_name='config')
@@ -189,5 +199,5 @@ def main(cfg: DictConfig):
 
     train(cfg, run)
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
