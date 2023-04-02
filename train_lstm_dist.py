@@ -28,6 +28,8 @@ from pickle import dump
 from transformer.transformer_model import CMIPTimeSeriesDataset
 import omegaconf
 import time
+
+
 def split_data(df):
     latlons = df[['lat','lon']].drop_duplicates()
     train = latlons.sample(frac=0.7)
@@ -42,9 +44,12 @@ def split_data(df):
 def get_training_data(cfg,run):
     cesm_df = pd.read_csv(f'{cfg.data}/timeseries_cesm_training_data_30.csv')
     ecozones_coords = pd.read_csv(f'{cfg.data}/ecozones_coordinates.csv')
+    ecozones_coords[ecozones_coords['zone'].isin(['Boreal Cordillera','Boreal PLain', 'Boreal Shield'])]
+    merged = merged.drop(columns=['zone'])
+
     # ecozones_coords = ecozones_coords[ecozones_coords['zone'] in ['Boreal Cordillera','Boreal PLain', 'Boreal Shield']]
     merged = pd.merge(cesm_df,ecozones_coords,on=['lat','lon'],how='inner')
-
+    
     #need to reshape here for data scaling
     # split data into 6 chunks, use 4 for training, 1 for validation, 1 for hold out
     # chunk_size = len((np.array_split(cesm_df, 6, axis=0))[0])
@@ -61,8 +66,10 @@ def get_training_data(cfg,run):
     # # hold_out = cesm_df[-chunk_size:]
     # # train_ds = cesm_df[:-chunk_size]
     # train_ds = cesm_df
+    
     train_ds,val_ds,test_ds = split_data(merged)
     #fix that you are modifying targets here too
+
     scaler = preprocessing.StandardScaler().fit(train_ds.loc[:,cfg.model.input])
     # hold_out_scaler = preprocessing.StandardScaler().fit(hold_out.loc[:,cfg.model.input])
     train_ds.loc[:,cfg.model.input] = scaler.transform(train_ds.loc[:,cfg.model.input])

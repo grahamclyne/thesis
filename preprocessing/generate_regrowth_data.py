@@ -23,11 +23,13 @@ def getRow(nfis_tif:rioxarray.Dataset,lat:float,lon:float,next_lat:float,next_lo
         print(row)
         return row
 
-def generate(coordinates:list,ordered_latitudes:list,ordered_longitudes:list,writer:csv.writer,num_cores:int) -> None:
+def generate(coordinates:list,ordered_latitudes:list,ordered_longitudes:list,writer:csv.writer,num_cores:int,cfg) -> None:
     nfis_tif = rioxarray.open_rasterio(f'data/CA_forest_harvest_years2recovery/CA_forest_harvest_years2recovery.tif',decode_coords='all',lock=False)
     x = iter(coordinates)
     for _ in range(int(len(coordinates))):
-        lat,lon,next_lat,next_lon = getCoordinates(next(x),ordered_latitudes,ordered_longitudes)
+        lat,lon = next(x)
+        next_lat,next_lon = getCoordinates(lat,lon,cfg)
+        print(lat,lon)
         writer.writerow(getRow(nfis_tif,lat,lon,next_lat,next_lon))
     nfis_tif.close()
 
