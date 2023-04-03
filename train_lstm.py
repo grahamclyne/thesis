@@ -29,7 +29,7 @@ def get_training_data(cfg,run):
     # train_ds.loc[:,cfg.model.output] = out_scaler.transform(train_ds.loc[:,cfg.model.output])
     # hold_out.loc[:,cfg.model.input] = scaler.transform(hold_out.loc[:,cfg.model.input])
     if run != None:
-        dump(scaler, open(f'{cfg.environment.checkpoint}/lstm_scaler_{run.name}.pkl','wb'))
+        dump(scaler, open(f'{cfg.environment.checkpoint}/lstm_scaler_{run.name}_gpu.pkl','wb'))
     # dump(hold_out_scaler, open(f'{cfg.environment.checkpoint}/lstm_hold_out_scaler_{wandb.run.name}.pkl','wb'))
     # hold_out = CMIPTimeSeriesDataset(hold_out,cfg.model.seq_len,len(cfg.model.input + cfg.model.output + cfg.model.id),cfg)
     train_ds = CMIPTimeSeriesDataset(train_ds,cfg.model.seq_len,len(cfg.model.input + cfg.model.output + cfg.model.id),cfg)
@@ -89,7 +89,7 @@ def main(cfg: DictConfig):
 
         epoch_time = time.time() - total_start
         wandb.log({'epoch time':epoch_time})
-        torch.save({'model_state_dict': model.state_dict(),'optimizer_state_dict': optimizer.state_dict(),}, f'{cfg.environment.checkpoint}/lstm_checkpoint_{wandb.run.name}.pt')
+        torch.save({'model_state_dict': model.state_dict(),'optimizer_state_dict': optimizer.state_dict(),}, f'{cfg.environment.checkpoint}/lstm_checkpoint_{wandb.run.name}_gpu.pt')
 
     hold_out_loss=0
     total_predictions = []
