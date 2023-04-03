@@ -4,7 +4,7 @@
 #SBATCH --gres=gpu:1 # request a GPU
 
 #SBATCH --cpus-per-task=1
-#SBATCH --mem=100G
+#SBATCH --mem=10G
 module load python/3.9
 module load geos
 module load proj

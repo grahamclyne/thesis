@@ -104,11 +104,12 @@ def main(cfg: DictConfig):
         pred_y = model(src.float())
         loss = loss_function(pred_y,tgt.float())
         hold_out_loss += loss.item() 
-        total_predictions.append(pred_y.detach().numpy())
-        total_targets.append(tgt.detach().numpy())
+        total_predictions.append(pred_y.cpu().detach().numpy())
+        total_targets.append(tgt.cpu().detach().numpy())
         wandb.log({"hold_out_loss": loss})
-        print(pred_y.detach().numpy())
-        print(tgt.detach().numpy())
+        print(pred_y.cpu().detach().numpy())
+        print(tgt.cpu().detach().numpy())
+    wandb.log({'total_hold_out_loss':hold_out_loss})
 
 
 main()
