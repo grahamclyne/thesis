@@ -16,6 +16,9 @@ from transformer.transformer_model  import CMIPTimeSeriesDataset
 
 def get_training_data(cfg,run):
     cesm_df = pd.read_csv(f'{cfg.data}/timeseries_cesm_training_data_30.csv')
+    ecozones_coords = pd.read_csv(f'{cfg.data}/ecozones_coordinates.csv')
+    ecozones_coords[ecozones_coords['zone'].isin(['Boreal Cordillera','Boreal PLain', 'Boreal Shield'])]
+    merged = merged.drop(columns=['zone'])
     train_ds,val_ds,test_ds = split_data(cesm_df)
     #fix that you are modifying targets here too
     scaler = preprocessing.StandardScaler().fit(train_ds.loc[:,cfg.model.input])

@@ -8,7 +8,10 @@ seq_len: 30
 tsl_offset: 0
 # input: ['tsl','ps','pr','treeFrac','tas_DJF', 'tas_MAM', 'tas_JJA', 'tas_SON']
 
-input: ['ps','tsl','treeFrac','pr','tas_DJF','tas_JJA','zone']
+# input: ['ps','tsl','treeFrac','pr','tas_DJF','tas_JJA','zone_Arctic Cordillera','zone_Atlantic Maritime','zone_Boreal Cordillera','zone_Boreal PLain','zone_Boreal Shield','zone_Hudson Plain','zone_MixedWood Plain','zone_Montane Cordillera','zone_Northern Arctic','zone_Pacific Maritime','zone_Prairie','zone_Southern Arctic','zone_Taiga Cordillera','zone_Taiga Plain','zone_Taiga Shield']
+input: ['ps','tsl','treeFrac','pr','tas_DJF','tas_JJA']
+
+
   #input: ['ps','treeFrac','tas_DJF', 'tas_MAM', 'tas_JJA', 'tas_SON','pr']
   #input: ['treeFrac','tas_DJF','tas_JJA']
   # output: ['cSoil','cCwd','cVeg','cLitter','cLeaf','cRoot','cStem','cOther','cSoilAbove1m']
