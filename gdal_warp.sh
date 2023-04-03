@@ -1,12 +1,7 @@
 #!/bin/bash
 #SBATCH --time=12:00:00
 #SBATCH --account=def-dmatthew
-
 #SBATCH --mem=30G
-module load python/3.9
-module load geos
-module load proj
 module load gdal
 
-source ~/ENV/bin/activate
-python -m gdalwarp
+`gdalwarp -t_srs EPSG:4326 -s_srs EPSG:3978 /Users/gclyne/thesis/data/NFIS/CA_Forest_Harvest_1985-2020/CA_Forest_Harvest_1985-2020.tif /Users/gclyne/thesis/reprojected_4326_CA_Forest_Harvest_1985-2020.tif`
