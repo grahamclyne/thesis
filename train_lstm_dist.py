@@ -28,7 +28,7 @@ from pickle import dump
 from transformer.transformer_model import CMIPTimeSeriesDataset
 import omegaconf
 import time
-
+from torcheval.metrics import R2Score
 
 def split_data(df):
     latlons = df[['lat','lon']].drop_duplicates()
@@ -123,7 +123,7 @@ def train(cfg, run=None):
     # define loss function (criterion) and optimizer
     criterion = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=cfg.model.lr)
-
+    mae = nn.L1Loss()
     # Wrap the model
     model = nn.parallel.DistributedDataParallel(
         model, device_ids=None, output_device=None
@@ -133,13 +133,10 @@ def train(cfg, run=None):
     if is_master:
         run.watch(model)
 
-
-
-
-
+    # get the training data
     train_sampler,train_loader,validation_sampler,validation_loader,test_sampler,test_loader = get_training_data(cfg,run)
 
-    total_step = len(train_loader)
+    # train for the specified number of epochs
     for epoch in range(cfg.model.epochs):
         total_start = time.time()
         batch_loss = []
@@ -147,27 +144,23 @@ def train(cfg, run=None):
         validation_sampler.set_epoch(epoch)
         test_sampler.set_epoch(epoch)
         model.train()
-        for _,(src,tgt,id) in enumerate(train_loader):
-
+        for _,(src,tgt,_) in enumerate(train_loader):
             pred_y = model(src.float())
             loss = criterion(pred_y, tgt.float())
-            if do_log:
-                print(id)
-                print(pred_y[0:20])
-                print(tgt[0:20])
-                print(src[0:20])
-                print(src.shape)
-                print(tgt.shape)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
             loss = float(loss)
             batch_loss.append(loss)
             if do_log:
-                run.log({"train_batch_loss": loss})
-        valid_batch_loss = []
+                run.log({"train_loss": loss})
+        if do_log:
+            metric = R2Score()
+            metric.update(pred_y, tgt)
+            run.log({'train_batch_loss':batch_loss,'train_r2_score':metric.compute()})
 
         #Validation data
+        valid_batch_loss = []
         model.eval()
         for _,(srd,tgt,_) in enumerate(validation_loader):
             pred_y = model(srd.float())
@@ -175,22 +168,31 @@ def train(cfg, run=None):
             loss = float(loss)
             valid_batch_loss.append(loss)
             if do_log:
-                run.log({"valid_batch_loss": loss})
-        test_batch_loss = []
+                run.log({"validation_loss": loss})
         if do_log:
-            run.log({"epoch": epoch, 'epoch_time':time.time() - total_start})
+            metric = R2Score()
+            metric.update(pred_y, tgt)
+            run.log({'validation_batch_loss':valid_batch_loss,"epoch": epoch, 'epoch_time':time.time() - total_start, 'validation_r2_score':metric.compute()})
+
+
     #test data
+    test_batch_loss = []
+    test_batch_mae_loss = []
     if is_master:
         for _,(srd,tgt,_) in enumerate(test_loader):
             pred_y = model(srd.float())
             loss = criterion(pred_y, tgt.float())
             loss = float(loss)
             test_batch_loss.append(loss)
+            mae_loss = float(mae(pred_y, tgt.float()))
+            test_batch_mae_loss.append(mae_loss)
             if do_log:
-                run.log({"test_batch_loss": loss})
+                run.log({"test_loss": loss})
+                run.log({"test_mae": mae_loss})
         if do_log:
-            run.log({"epoch": epoch, "loss": np.mean(batch_loss),'valid_loss':np.mean(valid_batch_loss),'epoch_time':time.time() - total_start})
-
+            metric = R2Score()
+            metric.update(pred_y, tgt)
+            run.log({"test_batch_loss": test_batch_loss,'test_batch_mae_loss':test_batch_mae_loss,'test_r2_score':metric.compute()})
 
 def setup_run(cfg):
     if os.environ['LOCAL_RANK'] == '0':
@@ -203,7 +205,6 @@ def setup_run(cfg):
 def main(cfg: DictConfig):
     # wandb.init a run if logging, otherwise return None
     run = setup_run(cfg)
-
     train(cfg, run)
 
 if __name__ == '__main__':

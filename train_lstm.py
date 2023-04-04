@@ -58,6 +58,14 @@ def main(cfg: DictConfig):
     # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     model = RegressionLSTM(num_sensors=len(cfg.model.input), hidden_units=cfg.model.hidden_units,cfg=cfg).cuda()
     # Define Loss, Optimizer
+
+    #find batch size
+    from torchsummary import summary
+    summary(model)
+    # gpu_mem = 16000
+    # (gpu_mem - model_size) / (forward_back_ward_size)
+    # (gpu_mem - 4.3) / 13.93 = 1148.29
+    
     loss_function = nn.MSELoss().cuda()
     run = wandb.init(project="land-carbon-gpu", entity="gclyne",config=omegaconf.OmegaConf.to_container(cfg, resolve=True, throw_on_missing=True))
     optimizer = torch.optim.Adam(model.parameters(), lr=cfg.model.lr)
