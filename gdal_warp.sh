@@ -1,11 +1,12 @@
 #!/bin/bash
-#SBATCH --time=12:00:00
+#SBATCH --time=16:00:00
 #SBATCH --account=def-dmatthew
-#SBATCH --mem=30G
+#SBATCH --mem=130G
 module load gdal
 
-`gdalwarp -t_srs EPSG:4326 -s_srs EPSG:3978 /Users/gclyne/thesis/data/NFIS/CA_Forest_Harvest_1985-2020/CA_Forest_Harvest_1985-2020.tif /Users/gclyne/thesis/reprojected_4326_CA_Forest_Harvest_1985-2020.tif`
 for i in {1984..2020}
 do
-    gdalwarp -t_srs EPSG:4326 -s_srs EPSG:3978 /home/gclyne/scratch/CA_forest_VLCE2_$i.tif /Users/gclyne/thesis/reprojected_4326_CA_forest_$i.tif
+    gdalwarp -t_srs EPSG:4326 -s_srs EPSG:3978 -r average /home/gclyne/scratch/CA_forest_VLCE2_$i.tif /Users/gclyne/thesis/reprojected_4326_CA_forest_$i.tif
 done
+gdalwarp -t_srs EPSG:4326 -s_srs EPSG:3978 -r average /home/gclyne/scratch/CA_Forest_Harvest_1985-2020/CA_Forest_Harvest_1985-2020.tif /home/gclyne/scratch/reprojected_4326_CA_Forest_Harvest_1985-2020.tif
+gdalwarp -t_srs EPSG:4326 -s_srs EPSG:9122 -r average /home/gclyne/scratch/CA_forest_total_biomass_2015.tif /home/gclyne/scratch/reprojected_4326_forest_total_biomass_2015.tif

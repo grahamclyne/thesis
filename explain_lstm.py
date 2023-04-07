@@ -10,7 +10,7 @@ from lstm_model import RegressionLSTM
 from transformer.transformer_model import CMIPTimeSeriesDataset
 import numpy as np
 from visualization.plot_helpers import plotNSTransect
-
+import shap
 
 #gets mean,std for 1984-2014
 def get_df_means_stds(df,cfg):
@@ -30,6 +30,22 @@ def getAttribution(input,cfg,ig,target):
     input = torch.tensor(ds.data[:,:,:6]).float()
     attr= ig.attribute(input,target=target) #target 2 is cStem
     return attr.detach().numpy(),ds
+
+
+def visualizeShapleyValues(cfg,model):
+    final_input = final_input[final_input['lon'] == -118.75]
+    scaler = load(open(f'{cfg.project}/checkpoint/lstm_scaler_{cfg.run_name}.pkl', 'rb'))
+    final_input.loc[:,tuple(cfg.model.input)] = scaler.transform(final_input[cfg.model.input])
+    final_input= final_input[cfg.model.input + cfg.model.id]
+    ds = CMIPTimeSeriesDataset(final_input,cfg.model.seq_len,len(cfg.model.input) + len(cfg.model.id),cfg)
+    final_input = torch.tensor(ds.data[:,:,:6]).float()
+    e = shap.DeepExplainer(model,final_input)
+    shap_values = e.shap_values(
+        final_input
+    )
+    sum = (shap_values[0] + shap_values[1] + shap_values[2] + shap_values[3])/4
+    # shap.summary_plot(sum.reshape(-1,6), features=final_input.reshape(-1,6), feature_names=['ps','tsl','treeFrac','pr','tas_DJF','tas_JJA'])
+    shap.summary_plot(shap_values[2].mean(axis=1), features=final_input.mean(axis=1), feature_names=['ps','tsl','treeFrac','pr','tas_DJF','tas_JJA'])
 
 
 #plots for 1984-2014
@@ -91,16 +107,16 @@ def main(cfg: DictConfig):
     model.load_state_dict(checkpoint['model_state_dict'])
     model.eval()
     ig = IntegratedGradients(model)
-    final_input = pd.read_csv(f'{cfg.data}/observed_timeseries30_data.csv')
+    final_input = pd.read_csv(f'{cfg.data}/observed_timeseries{cfg.seq_len}_data.csv')
     means,stds = get_df_means_stds(final_input,cfg)
-    target = 3 # cSoilAbove1m
-    target_name = 'cSoilAbove1m'
-    # target = 2 # cStem
-    # target_name = 'cStem'
+    target = 2 
+    target_name = 'cStem'
     lon = -73.75
     attr,ds = NS_transect_attr_data(final_input,cfg,lon,ig,target)
     visualizeAttribution(attr,ds,lon,cfg,means,stds,target_name)
     lon = -118.75
     attr,ds = NS_transect_attr_data(final_input,cfg,lon,ig,target)
     visualizeAttribution(attr,ds,lon,cfg,means,stds,target_name)
+    visualizeShapleyValues(final_input,cfg,lon,target_name)
 main()
+
