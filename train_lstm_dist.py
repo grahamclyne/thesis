@@ -173,6 +173,7 @@ def train(cfg, run=None):
             metric = R2Score()
             metric.update(pred_y, tgt)
             run.log({'validation_batch_loss':valid_batch_loss,"epoch": epoch, 'epoch_time':time.time() - total_start, 'validation_r2_score':metric.compute()})
+            torch.save({'model_state_dict': model.state_dict(),'optimizer_state_dict': optimizer.state_dict(),}, f'{cfg.environment.checkpoint}/lstm_checkpoint_{run.name}.pt')   
 
 
     #test data

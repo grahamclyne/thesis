@@ -37,8 +37,8 @@ def plotCountryWideGridded(df_list,variable,titles=None,main_title=None):
         plt.show()
 
 def plotNSTransect(lon):
-    managed_forest_coordinates = readCoordinates(f'data/managed_coordinates.csv',is_grid_file=False)
-    coords = [x for x in managed_forest_coordinates if x[1] == lon]
+    forest_coordinates = readCoordinates(f'data/ecozones_coordinates.csv',is_grid_file=False)
+    coords = [x for x in forest_coordinates if x[1] == lon]
     x = pd.DataFrame(list(zip(*coords))).T
     x.columns = ['lat','lon']
     df = gpd.GeoDataFrame([],geometry=getGeometryBoxes(x))
@@ -47,5 +47,5 @@ def plotNSTransect(lon):
     f, axes = plt.subplots(figsize=(10, 10))
     canada.plot(ax=axes,alpha=0.2)
     df.plot(ax=axes)
-    plt.title(f'Managed Forest North-South Transect at Longitude {lon}',fontsize=15)
+    plt.title(f'Forest North-South Transect at Longitude {lon}',fontsize=15)
     plt.savefig(f'NS_transect_{lon}.png')

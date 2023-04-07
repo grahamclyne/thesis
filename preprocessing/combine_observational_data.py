@@ -6,29 +6,27 @@ import numpy as np
 
 @hydra.main(version_base=None, config_path="../conf", config_name="config")
 def main(cfg: DictConfig):
-
-    # t2m lai_lv swvl1 ro lai_hv sp skt evabs stl1 tp total_lai
     era_data = pd.read_csv(f'{cfg.data}/ERA/era_data_{cfg.study_area}.csv',index_col=False)
-    nfis_data = pd.read_csv(f'{cfg.data}/generated_data/nfis_tree_cover_data_{cfg.study_area}.csv')
-    era_data = era_data.where(era_data['stl1'] > 0).dropna()
-    nfis_data = nfis_data.where(nfis_data['broadleaf'] > 0).dropna()
+    era_data = era_data.dropna()
+    nfis_data = pd.read_csv(f'{cfg.data}/forest_df.csv')
     era_data = era_data.rename(columns={'# year':'year'})
     era_data['lat'] = round(era_data['lat'],6)
     nfis_data['lat'] = round(nfis_data['lat'],6)
     df_merged = pd.merge(era_data,nfis_data,on=['year','lat','lon'],
                                                 how='inner')
-    for col in ['water','snow_ice','rock_rubble','exposed_barren_land','bryoids','shrubs','wetland',
-        'wetland-treed','herbs','coniferous','broadleaf','mixedwood']:
-        df_merged[col] = df_merged[col] / (df_merged['total_pixels'] - df_merged['no_change']) * 100
-    df_merged['treeFrac'] = df_merged['coniferous'] + df_merged['broadleaf'] + df_merged['mixedwood'] + df_merged['wetland-treed']
-    df_merged['baresoilFrac'] = df_merged['exposed_barren_land']
-    df_merged['grassCropFrac'] = df_merged['bryoids'] + df_merged['herbs']
-    df_merged['residualFrac'] = df_merged['snow_ice'] + df_merged['rock_rubble'] + df_merged['water']
-    df_merged['wetlandFrac'] = df_merged['wetland']
+    # for col in ['water','snow_ice','rock_rubble','exposed_barren_land','bryoids','shrubs','wetland',
+    #     'wetland-treed','herbs','coniferous','broadleaf','mixedwood']:
+    #     df_merged[col] = df_merged[col] / (df_merged['total_pixels'] - df_merged['no_change']) * 100
+    # df_merged['treeFrac'] = df_merged['coniferous'] + df_merged['broadleaf'] + df_merged['mixedwood'] + df_merged['wetland-treed']
+    # df_merged['baresoilFrac'] = df_merged['exposed_barren_land']
+    # df_merged['grassCropFrac'] = df_merged['bryoids'] + df_merged['herbs']
+    # df_merged['residualFrac'] = df_merged['snow_ice'] + df_merged['rock_rubble'] + df_merged['water']
+    # df_merged['wetlandFrac'] = df_merged['wetland']
+    df_merged['tree_cover'] = df_merged['tree_cover'] * 100
 
-
+    
     final_input = df_merged.rename(columns={'# tas_DJF':'tas_DJF','evabs':'evspsblsoi','stl1':'tsl','sp':'ps',
-    'ro':'mrro','tp':'pr','swvl1':'mrsos'})
+    'ro':'mrro','tp':'pr','swvl1':'mrsos','tree_cover':'treeFrac'})
     #map names to input data names
     # final_input = final_input[np.count_nonzero(final_input.values, axis=1) > len(final_input.columns)-5]
     # final_input = final_input.fillna(0)

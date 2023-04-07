@@ -210,6 +210,7 @@ def getGeometryBoxes(input:pd.DataFrame):
         lon_index = find_nearest_index(ordered_lons,left) + 1
         right = ordered_lons.iloc[lon_index][0]
         bbox = box(left,bottom,right,top)
+
         boxes.append(bbox)
     return boxes
 
