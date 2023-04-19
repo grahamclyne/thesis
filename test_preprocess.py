@@ -21,11 +21,11 @@ def preprocess():
     # for_har = for_har.rio.clip(gdf.geometry, ecozones.crs,drop=True)
 
     # for_har = for_har.rio.clip(ecozones.geometry,'epsg:4326',drop=True)
-    for year in range(1984,2020):
+    for year in range(1985,2020):
         print(year)
         start = time.time()
         cur_forest = rioxarray.open_rasterio(f'/home/gclyne/scratch/reprojected_4326_CA_forest_{year}.tif')
-        last_year_forest = rioxarray.open_rasterio(f'home/gclyne/scratch/reprojected_4326_CA_forest_{year-1}.tif')
+        last_year_forest = rioxarray.open_rasterio(f'/home/gclyne/scratch/reprojected_4326_CA_forest_{year-1}.tif')
         for box in boxes:
             print(box.bounds)
             lon = box.bounds[0]
@@ -50,7 +50,7 @@ def preprocess():
         end = time.time()
         print(end - start)
         break
-    # forest_df.to_csv('forest_df.csv',index=False)
+    forest_df.to_csv('forest_df.csv',index=False)
 
 if __name__ == '__main__':
     start = time.time()

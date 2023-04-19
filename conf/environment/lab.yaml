@@ -8,3 +8,4 @@ nfis_harvest_data: '${data}/generated_data/nfis_harvest_data.csv'
 canada_shapefile: '${data}/shapefiles/lpr_000b21a_e/lpr_000b21a_e.shp'
 shapefiles: '${data}/shapefiles'
 era_data: '${data}/ERA'
+distributed: True

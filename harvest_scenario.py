@@ -3,9 +3,53 @@ from omegaconf import DictConfig
 import hydra
 import numpy as np
 from infer_lstm import infer_lstm
-from compare_agb_datasets import getRegionalAGB,plotAGBComparison,pandasToGeo
+from compare_agb_datasets import getRegionalAGB,pandasToGeo
 import geopandas as gpd
 import matplotlib.pyplot as plt
+import matplotlib as mpl
+
+
+#AGB FIGURE FOR ESTIMATE COMPARISON
+def plotAGBComparison(dataframes:list,canada:gpd.GeoDataFrame,ecozones:gpd.GeoDataFrame,titles:list,filename:str,main_title) -> None:
+    if (len(dataframes) == 4):
+        f, axes = plt.subplots(figsize=(30, 20),nrows=int(len(dataframes)/2),ncols=int(len(dataframes)/2))
+        # plt.subplots_adjust(left=0.0,
+        #                     bottom=0.5,
+        #                     right=0.1,
+        #                     top=1.1,
+        #                     wspace=0.1,
+        #                     hspace=0)
+    else:
+        f, axes = plt.subplots(figsize=(30, 8),nrows=1,ncols=len(dataframes))
+    # max_val = max([x['agb'].max() for x in dataframes])
+    # min_val = min([x['agb'].min() for x in dataframes])
+    axes = axes.flatten()
+    for ax_index in range(0,len(axes)):
+        max_val = dataframes[ax_index].agb.max()
+        min_val = dataframes[ax_index].agb.min()
+        norm = mpl.colors.Normalize(min_val,max_val,clip=True)
+
+        canada.plot(ax=axes[ax_index],alpha=0.1)
+        ecozones.plot(ax=axes[ax_index],color='white',edgecolor='black',alpha=0.1)
+        ax = dataframes[ax_index].plot(ax=axes[ax_index],column='agb',norm=norm,cmap='Greens')
+        ax.set_xlabel('Longitude',fontsize=40)
+        ax.set_ylabel('Latitude',fontsize=40)
+        ax.tick_params(axis='both', which='major', labelsize=40)
+        
+        x = mpl.image.AxesImage(ax=axes[ax_index])
+        axes[ax_index].title.set_text(titles[ax_index])
+        axes[ax_index].title.set_fontsize(40)
+
+        m = plt.cm.ScalarMappable(cmap='Greens')
+        m.set_array(dataframes[ax_index]['agb'])
+        cbar = plt.colorbar(m,fraction=0.026, pad=0.04,ax=axes[ax_index])
+        cbar.ax.set_ylabel('AGB Carbon (Mt C)',fontsize=40)
+        cbar.ax.tick_params(labelsize=40)
+
+    f.tight_layout()
+    f.suptitle(main_title,fontsize=60)
+    plt.savefig(f'{filename}.png')
+
 
 def yearlyComparisonPlot(dataframes:list,legend:list):
     fig,ax = plt.subplots(figsize=(20,10))
@@ -22,6 +66,7 @@ def yearlyComparisonPlot(dataframes:list,legend:list):
 def main(cfg: DictConfig):
     #make harvest datasets
     observed_ds = pd.read_csv(f'{cfg.data}/observed_timeseries{cfg.model.seq_len}_data.csv')
+    list_of_regions = ['Boreal Shield','Boreal Cordillera','Boreal PLain']
 
     nfis_data = pd.read_csv(f'{cfg.data}/forest_df.csv')
 
@@ -29,32 +74,28 @@ def main(cfg: DictConfig):
     observed_ds['lat'] = observed_ds['lat'].round(6)
     df_merged = pd.merge(observed_ds,nfis_data,on=['year','lat','lon'],how='left')
     emulated = pd.read_csv(f'{cfg.data}/emulation_df.csv')
-
-    # #convert from rolling window data
-    # emulated = emulated.groupby(['lat','lon','year']).mean().reset_index()
-    df_merged['without_regrowth'] = df_merged['treeFrac'] - (df_merged['percentage_growth'] * 100)
-    df_merged['reforested'] = df_merged['treeFrac'] +  (df_merged['percent_harvested'] * 100)
-    print(df_merged[['reforested','without_regrowth','treeFrac','percent_harvested','percentage_growth']])
-    df_merged.drop(columns=['treeFrac'],inplace=True)
-    reforestation = df_merged.rename(columns={'reforested':'treeFrac'})
-    no_regrowth_df = df_merged.rename(columns={'without_regrowth':'treeFrac'})
-
-
-    #infer using model
-    reforested_carbon = infer_lstm(reforestation,cfg)
-    no_regrowth_carbon = infer_lstm(no_regrowth_df,cfg)
-
-   
-
-    print(reforested_carbon)
-    print(no_regrowth_carbon)
-    
-
-    list_of_regions = ['Boreal Shield','Boreal Cordillera','Boreal PLain']
-
     ecozones_coords = pd.read_csv(f'{cfg.data}/ecozones_coordinates.csv')
     ecozones_coords = ecozones_coords[ecozones_coords['zone'].isin(list_of_regions)]
     ecozones_coords['lat'] = ecozones_coords['lat'].round(6)
+    df_merged = pd.merge(df_merged,ecozones_coords,on=['lat','lon'],how='inner')
+
+    harvest_yearly_data = pd.merge(df_merged,df_merged.pivot_table(index=['lat','lon'], 
+                columns=['year'], values='percent_harvested').reset_index(),on=['lat','lon'],how='left')
+    growth_yearly_data = pd.merge(df_merged,df_merged.pivot_table(index=['lat','lon'], 
+                columns=['year'], values='percentage_growth').reset_index(),on=['lat','lon'],how='left')
+
+
+    for year in range(1985,2020):
+        harvest_yearly_data.loc[harvest_yearly_data['year'] > year,'treeFrac'] = (harvest_yearly_data.loc[harvest_yearly_data['year'] > year][year] * 100) + harvest_yearly_data.loc[harvest_yearly_data['year'] > year,'treeFrac']
+        growth_yearly_data.loc[growth_yearly_data['year'] > year,'treeFrac'] = growth_yearly_data.loc[growth_yearly_data['year'] > year,'treeFrac']  - (growth_yearly_data.loc[growth_yearly_data['year'] > year][year] * 100)
+
+
+    #infer using model
+    reforested_carbon = infer_lstm(harvest_yearly_data,cfg)
+    no_regrowth_carbon = infer_lstm(growth_yearly_data,cfg)
+
+
+
     emulated['agb'] = emulated['cStem'] + emulated['cOther'] + emulated['cLeaf'] #this is in kg/m2
     reforested_carbon['agb'] = reforested_carbon['cStem'] + reforested_carbon['cOther'] + reforested_carbon['cLeaf'] #this is in kg/m2
     no_regrowth_carbon['agb'] = no_regrowth_carbon['cStem'] + no_regrowth_carbon['cOther'] + no_regrowth_carbon['cLeaf'] #this is in kg/m2
@@ -65,7 +106,7 @@ def main(cfg: DictConfig):
     regional_emulated_agb = getRegionalAGB(emulated,ecozones_coords,cfg)
     regional_no_regrowth_difference = regional_reforested_agb.copy()
     regional_reforested_difference = regional_reforested_agb.copy()
-    regional_no_regrowth_difference['agb'] = regional_no_regrowth_agb['agb'] - regional_emulated_agb['agb']
+    regional_no_regrowth_difference['agb'] = regional_emulated_agb['agb'] - regional_no_regrowth_agb['agb']
     regional_reforested_difference['agb'] = regional_reforested_agb['agb'] - regional_emulated_agb['agb']
 
     #shape files for plotting
@@ -81,8 +122,8 @@ def main(cfg: DictConfig):
 
     no_regrowth_diff = pandasToGeo(regional_no_regrowth_difference)
     reforested_diff = pandasToGeo(regional_reforested_difference)
-    plotAGBComparison([no_regrowth_gdf,emulated_gdf,no_regrowth_diff],canada,ecozones,['No Regrowth','Observed','Difference'],'regrowth_harvest_scenario')
-    plotAGBComparison([reforested_gdf,emulated_gdf,reforested_diff],canada,ecozones,['Reforestation','Observed','Difference'],'reforest_harvest_scenario')
+    plotAGBComparison([emulated_gdf,no_regrowth_gdf,no_regrowth_diff],canada,ecozones,['Observed','No Regrowth','Difference'],'regrowth_harvest_scenario','No Regrowth Harvest Scenario')
+    plotAGBComparison([reforested_gdf,emulated_gdf,reforested_diff],canada,ecozones,['Reforestation','Observed','Difference'],'reforest_harvest_scenario','Reforestation Harvest Scenario')
 
     #plot yearly carbon
     reforested_carbon_yearly = regional_reforested_agb.groupby(['year']).sum().reset_index()

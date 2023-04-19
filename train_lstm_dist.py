@@ -86,18 +86,30 @@ def get_training_data(cfg,run):
     test_ds = CMIPTimeSeriesDataset(test_ds,cfg.model.seq_len,len(cfg.model.input + cfg.model.output + cfg.model.id),cfg)
 
     # train,validation = torch.utils.data.random_split(train_ds, [0.8,0.2], generator=torch.Generator().manual_seed(0))
-    train_sampler = torch.utils.data.DistributedSampler(train_ds)
-    validation_sampler = torch.utils.data.DistributedSampler(val_ds)
-    test_sampler = torch.utils.data.DistributedSampler(test_ds)
-    train_ldr = torch.utils.data.DataLoader(train_ds,batch_size=cfg.model.batch_size,shuffle=False, sampler=train_sampler)#train sample shuffles for us
-    validation_ldr = torch.utils.data.DataLoader(val_ds,batch_size=cfg.model.batch_size,shuffle=False,sampler=validation_sampler)
-    test_ldr = torch.utils.data.DataLoader(test_ds,batch_size=cfg.model.batch_size,shuffle=False,sampler=test_sampler)
-
+    if(cfg.environment.distributed):
+        train_sampler = torch.utils.data.DistributedSampler(train_ds)
+        validation_sampler = torch.utils.data.DistributedSampler(val_ds)
+        test_sampler = torch.utils.data.DistributedSampler(test_ds)
+        train_ldr = torch.utils.data.DataLoader(train_ds,batch_size=cfg.model.batch_size,shuffle=False, sampler=train_sampler)#train sample shuffles for us
+        validation_ldr = torch.utils.data.DataLoader(val_ds,batch_size=cfg.model.batch_size,shuffle=False,sampler=validation_sampler)
+        test_ldr = torch.utils.data.DataLoader(test_ds,batch_size=cfg.model.batch_size,shuffle=False,sampler=test_sampler)
+    else:
+        train_sampler = None
+        validation_sampler = None
+        test_sampler = None
+        train_ldr = torch.utils.data.DataLoader(train_ds,batch_size=cfg.model.batch_size,shuffle=True)#train sample shuffles for us
+        validation_ldr = torch.utils.data.DataLoader(val_ds,batch_size=cfg.model.batch_size,shuffle=True)
+        test_ldr = torch.utils.data.DataLoader(test_ds,batch_size=cfg.model.batch_size,shuffle=True)
     # hold_out_ldr = torch.utils.data.DataLoader(hold_out,batch_size=cfg.model.batch_size,shuffle=True)
     return train_sampler,train_ldr,validation_sampler,validation_ldr,test_sampler,test_ldr
 
 
 
+def lat_adjusted_mse(y_true, y_pred,lat):
+    lat_factor = np.cos(np.deg2rad(lat))
+    mse = torch.mean(torch.square(y_true - y_pred),-1)
+    lat_mse = mse * lat_factor
+    return torch.mean(lat_mse)
 
 def train(cfg, run=None):
     """
@@ -121,7 +133,7 @@ def train(cfg, run=None):
     model = RegressionLSTM(num_sensors=len(cfg.model.input), hidden_units=cfg.model.hidden_units,cfg=cfg)
 
     # define loss function (criterion) and optimizer
-    criterion = nn.MSELoss()
+    criterion = lat_adjusted_mse
     optimizer = torch.optim.Adam(model.parameters(), lr=cfg.model.lr)
     mae = nn.L1Loss()
     # Wrap the model
@@ -144,9 +156,9 @@ def train(cfg, run=None):
         validation_sampler.set_epoch(epoch)
         test_sampler.set_epoch(epoch)
         model.train()
-        for _,(src,tgt,_) in enumerate(train_loader):
+        for _,(src,tgt,id) in enumerate(train_loader):
             pred_y = model(src.float())
-            loss = criterion(pred_y, tgt.float())
+            loss = criterion(pred_y, tgt.float(),id[:,1])
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
@@ -162,9 +174,9 @@ def train(cfg, run=None):
         #Validation data
         valid_batch_loss = []
         model.eval()
-        for _,(srd,tgt,_) in enumerate(validation_loader):
+        for _,(srd,tgt,id) in enumerate(validation_loader):
             pred_y = model(srd.float())
-            loss = criterion(pred_y, tgt.float())
+            loss = criterion(pred_y, tgt.float(),id[:,1])
             loss = float(loss)
             valid_batch_loss.append(loss)
             if do_log:
@@ -180,9 +192,9 @@ def train(cfg, run=None):
     test_batch_loss = []
     test_batch_mae_loss = []
     if is_master:
-        for _,(srd,tgt,_) in enumerate(test_loader):
+        for _,(srd,tgt,id) in enumerate(test_loader):
             pred_y = model(srd.float())
-            loss = criterion(pred_y, tgt.float())
+            loss = criterion(pred_y, tgt.float(),id[:,1])
             loss = float(loss)
             test_batch_loss.append(loss)
             mae_loss = float(mae(pred_y, tgt.float()))

@@ -28,9 +28,15 @@ def pandasToGeo(df:pd.DataFrame):
 #AGB FIGURE FOR ESTIMATE COMPARISON
 def plotAGBComparison(dataframes:list,canada:gpd.GeoDataFrame,ecozones:gpd.GeoDataFrame,titles:list,filename:str) -> None:
     if (len(dataframes) == 4):
-        f, axes = plt.subplots(figsize=(10, 30),nrows=int(len(dataframes)/2),ncols=int(len(dataframes)/2))
+        f, axes = plt.subplots(figsize=(30, 20),nrows=int(len(dataframes)/2),ncols=int(len(dataframes)/2))
+        # plt.subplots_adjust(left=0.0,
+        #                     bottom=0.5,
+        #                     right=0.1,
+        #                     top=1.1,
+        #                     wspace=0.1,
+        #                     hspace=0)
     else:
-        f, axes = plt.subplots(figsize=(10, 30),nrows=1,ncols=len(dataframes))
+        f, axes = plt.subplots(figsize=(30, 8),nrows=1,ncols=len(dataframes))
     max_val = max([x['agb'].max() for x in dataframes])
     min_val = min([x['agb'].min() for x in dataframes])
     axes = axes.flatten()
@@ -38,25 +44,21 @@ def plotAGBComparison(dataframes:list,canada:gpd.GeoDataFrame,ecozones:gpd.GeoDa
     for ax_index in range(0,len(axes)):
         canada.plot(ax=axes[ax_index],alpha=0.1)
         ecozones.plot(ax=axes[ax_index],color='white',edgecolor='black',alpha=0.1)
-        ax = dataframes[ax_index].plot(ax=axes[ax_index],column='agb',norm=norm,cmap='cool')
-        ax.set_xlabel('Longitude',fontsize=30)
-        ax.set_ylabel('Latitude',fontsize=30)
-        ax.tick_params(axis='both', which='major', labelsize=30)
+        ax = dataframes[ax_index].plot(ax=axes[ax_index],column='agb',norm=norm,cmap='Greens')
+        ax.set_xlabel('Longitude',fontsize=40)
+        ax.set_ylabel('Latitude',fontsize=40)
+        ax.tick_params(axis='both', which='major', labelsize=40)
+        
         x = mpl.image.AxesImage(ax=axes[ax_index])
         axes[ax_index].title.set_text(titles[ax_index])
-        axes[ax_index].title.set_fontsize(30)
-    m = plt.cm.ScalarMappable(cmap='cool')
+        axes[ax_index].title.set_fontsize(40)
+    m = plt.cm.ScalarMappable(cmap='Greens')
     m.set_array(dataframes[0]['agb'])
     cbar = plt.colorbar(m,fraction=0.026, pad=0.04)
-    cbar.ax.set_ylabel('AGB Carbon (Mt C)',fontsize=30)
-    f.tight_layout()
-    # plt.subplots_adjust(left=0.0,
-    #                     bottom=0.5,
-    #                     right=0.1,
-    #                     top=1.1,
-    #                     wspace=0.1,
-    #                     hspace=0)
+    cbar.ax.set_ylabel('AGB Carbon (Mt C)',fontsize=40)
+    cbar.ax.tick_params(labelsize=40)
 
+    f.tight_layout()
     f.suptitle('Comparison of Above-Ground Biomass Estimates',fontsize=60)
     plt.savefig(f'{filename}.png')
 
@@ -110,7 +112,7 @@ def main(cfg: DictConfig):
     emulated_gdf = pandasToGeo(regional_emulated_agb)
     cesm_gdf = pandasToGeo(regional_cesm_agb)
 
-    plotAGBComparison([nfis_gdf,walker_gdf,emulated_gdf,cesm_gdf],canada,ecozones,['NTEMS (2015)','Walker et al. (2015)','Emulated (2015)','CESM (2014)'],'agb_comparison')
+    plotAGBComparison([nfis_gdf,walker_gdf,emulated_gdf,cesm_gdf],canada,ecozones,['Matasci et al. (2015)','Walker et al. (2015)','Emulated (2015)','CESM (2014)'],'agb_comparison')
 
     #REGIONAL SUMS
     for region in list_of_regions:

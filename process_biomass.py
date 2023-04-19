@@ -11,8 +11,9 @@ def preprocess():
     from preprocessing.utils import getGeometryBoxes
     boxes = getGeometryBoxes(ecozones_coords)
     forest_df = pd.DataFrame()
-    # agb = rioxarray.open_rasterio('/home/gclyne/scratch/reprojected_4326_CA_forest_total_biomass_2015.tif')
-    walker_agb = rioxarray.open_rasterio('/Users/gclyne/thesis/data/reprojected_4326_walker_agb.tif')
+    nfis_forest_df = pd.DataFrame()
+    agb = rioxarray.open_rasterio('/home/gclyne/scratch/reprojected_4326_CA_forest_total_biomass_2015.tif')
+    walker_agb = rioxarray.open_rasterio('/Users/gclyne/thesis/data/reprojected_4326_Base_Cur_AGB_MgCha_500m.tif')
     walker_agb = walker_agb.where(walker_agb != walker_agb.rio.nodata)
     for box in boxes:
         lon = box.bounds[0]
@@ -20,10 +21,14 @@ def preprocess():
         lat = box.bounds[1]
         next_lat = box.bounds[3]
         agb_cell = walker_agb.sel(band=1,x=slice(lon,next_lon),y=slice(next_lat,lat))
+        nfis_agb_cell = agb.sel(band=1,x=slice(lon,next_lon),y=slice(next_lat,lat))
+        nfis_total = nfis_agb_cell.mean().values
         total = agb_cell.mean().values
         forest_df = pd.concat([forest_df,pd.DataFrame({'lat':lat,'lon':lon,'agb':total}, index=[0])],ignore_index=True)
+        nfis_forest_df = pd.concat([forest_df,pd.DataFrame({'lat':lat,'lon':lon,'agb':nfis_total}, index=[0])],ignore_index=True)
         end = time.time()
         print(end - start)
+    nfis_forest_df.to_csv('nfis_agb_df.csv',index=False)
     forest_df.to_csv('walker_agb_df.csv',index=False)
 
 if __name__ == '__main__':
