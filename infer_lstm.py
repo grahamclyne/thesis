@@ -2,8 +2,7 @@ import pandas as pd
 
 from pickle import load
 import torch as T
-from transformer.transformer_model import CMIPTimeSeriesDataset
-from lstm_model import RegressionLSTM
+from lstm_model import RegressionLSTM,CMIPTimeSeriesDataset
 # import hydra
 # from omegaconf import DictConfig
 import numpy as np

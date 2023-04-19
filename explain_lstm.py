@@ -7,7 +7,7 @@ from captum.attr import IntegratedGradients
 import matplotlib.pyplot as plt
 import captum
 from lstm_model import RegressionLSTM
-from transformer.transformer_model import CMIPTimeSeriesDataset
+from lstm_model import CMIPTimeSeriesDataset
 import numpy as np
 import shap
 import geopandas as gpd

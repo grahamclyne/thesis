@@ -10,9 +10,9 @@ import time
 import wandb    
 import torch
 import numpy as np
-from lstm_model import RegressionLSTM
+from lstm_model import RegressionLSTM,CMIPTimeSeriesDataset,lat_adjusted_mse
 from train_lstm_dist import split_data
-from transformer.transformer_model  import CMIPTimeSeriesDataset
+from torcheval.metrics import R2Score
 
 def get_training_data(cfg,run):
     cesm_df = pd.read_csv(f'{cfg.data}/timeseries_cesm_training_data_30.csv')
@@ -24,26 +24,18 @@ def get_training_data(cfg,run):
     merged = merged[cfg.model.input + cfg.model.output + cfg.model.id]
 
     train_ds,val_ds,test_ds = split_data(merged)
-    #fix that you are modifying targets here too
     scaler = preprocessing.StandardScaler().fit(train_ds.loc[:,cfg.model.input])
-    # hold_out_scaler = preprocessing.StandardScaler().fit(hold_out.loc[:,cfg.model.input])
     train_ds.loc[:,cfg.model.input] = scaler.transform(train_ds.loc[:,cfg.model.input])
     val_ds.loc[:,cfg.model.input] = scaler.transform(val_ds.loc[:,cfg.model.input])
     test_ds.loc[:,cfg.model.input] = scaler.transform(test_ds.loc[:,cfg.model.input])
-    # train_ds.loc[:,cfg.model.output] = out_scaler.transform(train_ds.loc[:,cfg.model.output])
-    # hold_out.loc[:,cfg.model.input] = scaler.transform(hold_out.loc[:,cfg.model.input])
+
     if run != None:
         dump(scaler, open(f'{cfg.environment.checkpoint}/lstm_scaler_{run.name}_gpu.pkl','wb'))
-    # dump(hold_out_scaler, open(f'{cfg.environment.checkpoint}/lstm_hold_out_scaler_{wandb.run.name}.pkl','wb'))
-    # hold_out = CMIPTimeSeriesDataset(hold_out,cfg.model.seq_len,len(cfg.model.input + cfg.model.output + cfg.model.id),cfg)
+
     train_ds = CMIPTimeSeriesDataset(train_ds,cfg.model.seq_len,len(cfg.model.input + cfg.model.output + cfg.model.id),cfg)
     val_ds = CMIPTimeSeriesDataset(val_ds,cfg.model.seq_len,len(cfg.model.input + cfg.model.output + cfg.model.id),cfg)
     test_ds = CMIPTimeSeriesDataset(test_ds,cfg.model.seq_len,len(cfg.model.input + cfg.model.output + cfg.model.id),cfg)
 
-    # train,validation = torch.utils.data.random_split(train_ds, [0.8,0.2], generator=torch.Generator().manual_seed(0))
-    # train_sampler = torch.utils.data.DistributedSampler(train_ds)
-    # validation_sampler = torch.utils.data.DistributedSampler(val_ds)
-    # test_sampler = torch.utils.data.DistributedSampler(test_ds)
     train_ldr = torch.utils.data.DataLoader(train_ds,batch_size=cfg.model.batch_size,shuffle=True)
     validation_ldr = torch.utils.data.DataLoader(val_ds,batch_size=cfg.model.batch_size,shuffle=True)
     test_ldr = torch.utils.data.DataLoader(test_ds,batch_size=cfg.model.batch_size,shuffle=True)
@@ -61,12 +53,9 @@ def main(cfg: DictConfig):
 
     #find batch size
     from torchsummary import summary
-    summary(model)
-    # gpu_mem = 16000
-    # (gpu_mem - model_size) / (forward_back_ward_size)
-    # (gpu_mem - 4.3) / 13.93 = 1148.29
-    
-    loss_function = nn.MSELoss().cuda()
+    print(summary(model))
+
+    loss_function = lat_adjusted_mse.cuda()
     run = wandb.init(project="land-carbon-gpu", entity="gclyne",config=omegaconf.OmegaConf.to_container(cfg, resolve=True, throw_on_missing=True))
     optimizer = torch.optim.Adam(model.parameters(), lr=cfg.model.lr)
     train_loader,validation_loader,test_loader = get_training_data(cfg,run)
@@ -74,49 +63,58 @@ def main(cfg: DictConfig):
     for epoch_count in range(cfg.model.epochs):
         total_start = time.time()
         print('Epoch:',epoch_count)
-        train_loss = 0
+        batch_train_loss = 0
         model.train()
-        for src,tgt,_ in train_loader:
+        for src,tgt,id in train_loader:
             optimizer.zero_grad() #clears old gradients from previous steps 
             src = src.cuda()
             tgt = tgt.cuda()
             pred_y = model(src.float())
-            loss = loss_function(pred_y, tgt.float())
+            loss = loss_function(pred_y, tgt.float(),id[:,1].cuda())
             wandb.log({"training_loss": loss})
             loss.backward() #compute gradient
             optimizer.step() #take step based on gradient
             train_loss += loss.item()
-        wandb.log({'total_training_loss':train_loss})
+        metric = R2Score()
+        metric.update(pred_y.cpu().detach().numpy(),tgt.cpu().detach().numpy())
+        wandb.log({'train_r2_score':metric.compute()})
+
+        wandb.log({'batch_training_loss':batch_train_loss})
 
         model.eval()
         valid_loss = 0
-        for src,tgt,_ in validation_loader:
+        for src,tgt,id in validation_loader:
             src = src.cuda()
             tgt = tgt.cuda()
             pred_y = model(src.float())
-            loss = loss_function(pred_y,tgt.float())
+            loss = loss_function(pred_y,tgt.float(),id[:,1].cuda())
             valid_loss += loss.item()
             wandb.log({"validation_loss": loss})
-        wandb.log({'total_valid_loss':valid_loss})
-
+        wandb.log({'batch_valid_loss':valid_loss})
+        metric = R2Score()
+        metric.update(pred_y.cpu().detach().numpy(),tgt.cpu().detach().numpy())
+        wandb.log({'validation_r2_score':metric.compute()})
+        torch.save({'model_state_dict': model.state_dict(),'optimizer_state_dict': optimizer.state_dict(),}, f'{cfg.environment.checkpoint}/lstm_checkpoint_{wandb.run.name}_gpu.pt')
         epoch_time = time.time() - total_start
         wandb.log({'epoch time':epoch_time})
-        torch.save({'model_state_dict': model.state_dict(),'optimizer_state_dict': optimizer.state_dict(),}, f'{cfg.environment.checkpoint}/lstm_checkpoint_{wandb.run.name}_gpu.pt')
 
     hold_out_loss=0
     total_predictions = []
     total_targets = []
-    for src,tgt,_ in test_loader:
+    for src,tgt,id in test_loader:
         src = src.cuda()
         tgt = tgt.cuda()
         pred_y = model(src.float())
-        loss = loss_function(pred_y,tgt.float())
+        loss = loss_function(pred_y,tgt.float(),id[:,1].cuda())
         hold_out_loss += loss.item() 
         total_predictions.append(pred_y.cpu().detach().numpy())
         total_targets.append(tgt.cpu().detach().numpy())
         wandb.log({"hold_out_loss": loss})
         print(pred_y.cpu().detach().numpy())
         print(tgt.cpu().detach().numpy())
+    metric = R2Score()
+    metric.update(pred_y.cpu().detach().numpy(),tgt.cpu().detach().numpy())
+    wandb.log({'test_r2_score':metric.compute()})
     wandb.log({'total_hold_out_loss':hold_out_loss})
 
 

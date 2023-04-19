@@ -20,12 +20,11 @@ import torch.distributed as dist
 import wandb
 import hydra
 from omegaconf import DictConfig
-from lstm_model import RegressionLSTM
+from lstm_model import RegressionLSTM,CMIPTimeSeriesDataset,lat_adjusted_mse
 import os
 import pandas as pd
 from sklearn import preprocessing
 from pickle import dump
-from transformer.transformer_model import CMIPTimeSeriesDataset
 import omegaconf
 import time
 from torcheval.metrics import R2Score
@@ -104,12 +103,6 @@ def get_training_data(cfg,run):
     return train_sampler,train_ldr,validation_sampler,validation_ldr,test_sampler,test_ldr
 
 
-
-def lat_adjusted_mse(y_true, y_pred,lat):
-    lat_factor = np.cos(np.deg2rad(lat))
-    mse = torch.mean(torch.square(y_true - y_pred),-1)
-    lat_mse = mse * lat_factor
-    return torch.mean(lat_mse)
 
 def train(cfg, run=None):
     """
