@@ -7,9 +7,10 @@ project: '/Users/gclyne/thesis'
 data: '/Users/gclyne/thesis/data'
 entity: 'gclyne'
 wandb_project: 'dist-lstm-land-model'
-run_name: 'changeling-frontier-59'
+run_name: 'amber-forest-67'
 study_area: 'ecozones'
 preprocess_data_set: 'nfis_biomass'
 num_cores: 2
 raw_cmip_variables: ['cOther','cCwd','cVeg','cSoilAbove1m','cLitter','cLeaf','cRoot','evspsblsoi','lai','tsl','mrro','mrsos','grassFrac','shrubFrac','cropFrac','baresoilFrac','residualFrac','treeFrac','shrubFrac','cSoil','cStem','wetlandFrac','ps','pr','tas']
 raw_era_variables: ['2m_temperature', 'evaporation_from_bare_soil', 'leaf_area_index_high_vegetation','leaf_area_index_low_vegetation', 'runoff', 'skin_temperature','soil_temperature_level_1', 'surface_pressure', 'total_precipitation','volumetric_soil_water_layer_1']
+cmip_variable_map : {'Lmon':['cCwd','cVeg','cLitter','cLeaf','cRoot','evspsblsoi','lai','tsl','mrro','mrsos','grassFrac','shrubFrac','cropFrac','baresoilFrac','residualFrac','treeFrac','shrubFrac'],'Emon':['cSoilAbove1m','cSoil','cStem','wetlandFrac','cOther'],'Amon':['ps','pr','tas']}

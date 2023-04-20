@@ -1,4 +1,3 @@
-import torch.nn as nn
 import torch
 import pandas as pd
 from omegaconf import DictConfig
@@ -9,7 +8,6 @@ from pickle import dump
 import time
 import wandb    
 import torch
-import numpy as np
 from lstm_model import RegressionLSTM,CMIPTimeSeriesDataset,lat_adjusted_mse
 from train_lstm_dist import split_data
 from torcheval.metrics import R2Score
@@ -51,11 +49,7 @@ def main(cfg: DictConfig):
     model = RegressionLSTM(num_sensors=len(cfg.model.input), hidden_units=cfg.model.hidden_units,cfg=cfg).cuda()
     # Define Loss, Optimizer
 
-    #find batch size
-    from torchsummary import summary
-    print(summary(model))
-
-    loss_function = lat_adjusted_mse.cuda()
+    loss_function = lat_adjusted_mse
     run = wandb.init(project="land-carbon-gpu", entity="gclyne",config=omegaconf.OmegaConf.to_container(cfg, resolve=True, throw_on_missing=True))
     optimizer = torch.optim.Adam(model.parameters(), lr=cfg.model.lr)
     train_loader,validation_loader,test_loader = get_training_data(cfg,run)

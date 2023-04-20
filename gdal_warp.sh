@@ -11,3 +11,4 @@ done
 gdalwarp -t_srs EPSG:4326 -s_srs EPSG:3978 /home/gclyne/scratch/CA_Forest_Harvest_1985-2020.tif /home/gclyne/scratch/reprojected_4326_CA_Forest_Harvest_1985-2020.tif
 gdalwarp -t_srs EPSG:4326 -s_srs EPSG:9122 /home/gclyne/scratch/CA_forest_total_biomass_2015.tif /home/gclyne/scratch/reprojected_4326_forest_total_biomass_2015.tif
 gdalwarp -t_srs EPSG:4326 /Users/gclyne/thesis/data/Base_Cur_AGB_MgCha_500m.tif /Users/gclyne/thesis/data/reprojected_4326_Base_Cur_AGB_MgCha_500m.tif
+gdalwarp -t_srs EPSG:4326 /Users/gclyne/thesis/data/McMaster_WWFCanada_soil_carbon1m_250m_kg-m2_version1.0.tif /Users/gclyne/thesis/data/reprojected_4326_McMaster_WWFCanada_soil_carbon1m_250m_kg-m2_version1.0.tif

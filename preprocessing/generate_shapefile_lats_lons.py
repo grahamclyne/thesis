@@ -1,7 +1,6 @@
 import geopandas
 import xarray as xr
 import csv
-import preprocessing.config as config
 from preprocessing.utils import scaleLongitudes,clipWithShapeFile
 import hydra
 from omegaconf import DictConfig

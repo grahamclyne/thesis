@@ -2,15 +2,14 @@ import pandas as pd
 from omegaconf import DictConfig
 import hydra
 import numpy as np
-from infer_lstm import infer_lstm
-from compare_agb_datasets import getRegionalAGB,pandasToGeo
+from analysis.infer_lstm import infer_lstm
+from analysis.compare_observed_datasets import getRegionalValues,pandasToGeo
 import geopandas as gpd
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 
 
-#AGB FIGURE FOR ESTIMATE COMPARISON
-def plotAGBComparison(dataframes:list,canada:gpd.GeoDataFrame,ecozones:gpd.GeoDataFrame,titles:list,filename:str,main_title) -> None:
+def plotHarvestComparison(dataframes:list,canada:gpd.GeoDataFrame,ecozones:gpd.GeoDataFrame,titles:list,filename:str,main_title) -> None:
     if (len(dataframes) == 4):
         f, axes = plt.subplots(figsize=(30, 20),nrows=int(len(dataframes)/2),ncols=int(len(dataframes)/2))
         # plt.subplots_adjust(left=0.0,
@@ -48,7 +47,7 @@ def plotAGBComparison(dataframes:list,canada:gpd.GeoDataFrame,ecozones:gpd.GeoDa
 
     f.tight_layout()
     f.suptitle(main_title,fontsize=60)
-    plt.savefig(f'{filename}.png')
+    plt.savefig(f'figures/{filename}.png')
 
 
 def yearlyComparisonPlot(dataframes:list,legend:list):
@@ -60,9 +59,9 @@ def yearlyComparisonPlot(dataframes:list,legend:list):
     ax.tick_params(axis='both', which='major', labelsize=30)
     ax.legend(legend)
     plt.title('Yearly Above-Ground Biomass Totals for Harvest Scenario',fontsize=40)
-    plt.savefig('yearly_comparison_harvest.png')
+    plt.savefig('figures/yearly_comparison_harvest.png')
     
-@hydra.main(version_base=None, config_path="conf", config_name="config")
+@hydra.main(version_base=None, config_path="../conf", config_name="config")
 def main(cfg: DictConfig):
     #make harvest datasets
     observed_ds = pd.read_csv(f'{cfg.data}/observed_timeseries{cfg.model.seq_len}_data.csv')
@@ -101,9 +100,9 @@ def main(cfg: DictConfig):
     no_regrowth_carbon['agb'] = no_regrowth_carbon['cStem'] + no_regrowth_carbon['cOther'] + no_regrowth_carbon['cLeaf'] #this is in kg/m2
 
 
-    regional_reforested_agb = getRegionalAGB(reforested_carbon,ecozones_coords,cfg)
-    regional_no_regrowth_agb = getRegionalAGB(no_regrowth_carbon,ecozones_coords,cfg)
-    regional_emulated_agb = getRegionalAGB(emulated,ecozones_coords,cfg)
+    regional_reforested_agb = getRegionalValues(reforested_carbon,ecozones_coords,cfg,'agb')
+    regional_no_regrowth_agb = getRegionalValues(no_regrowth_carbon,ecozones_coords,cfg,'agb')
+    regional_emulated_agb = getRegionalValues(emulated,ecozones_coords,cfg,'agb')
     regional_no_regrowth_difference = regional_reforested_agb.copy()
     regional_reforested_difference = regional_reforested_agb.copy()
     regional_no_regrowth_difference['agb'] = regional_emulated_agb['agb'] - regional_no_regrowth_agb['agb']
@@ -116,14 +115,14 @@ def main(cfg: DictConfig):
     ecozones = ecozones.where(ecozones['ZONE_NAME'].isin(['Boreal Shield','Boreal Cordillera','Boreal PLain']))
 
     #convert to geodataframes
-    reforested_gdf = pandasToGeo(regional_reforested_agb)
-    no_regrowth_gdf = pandasToGeo(regional_no_regrowth_agb)
-    emulated_gdf = pandasToGeo(regional_emulated_agb)
+    reforested_gdf = pandasToGeo(regional_reforested_agb,'agb')
+    no_regrowth_gdf = pandasToGeo(regional_no_regrowth_agb,'agb')
+    emulated_gdf = pandasToGeo(regional_emulated_agb,'agb')
+    no_regrowth_diff = pandasToGeo(regional_no_regrowth_difference,'agb')
+    reforested_diff = pandasToGeo(regional_reforested_difference,'agb')
 
-    no_regrowth_diff = pandasToGeo(regional_no_regrowth_difference)
-    reforested_diff = pandasToGeo(regional_reforested_difference)
-    plotAGBComparison([emulated_gdf,no_regrowth_gdf,no_regrowth_diff],canada,ecozones,['Observed','No Regrowth','Difference'],'regrowth_harvest_scenario','No Regrowth Harvest Scenario')
-    plotAGBComparison([reforested_gdf,emulated_gdf,reforested_diff],canada,ecozones,['Reforestation','Observed','Difference'],'reforest_harvest_scenario','Reforestation Harvest Scenario')
+    plotHarvestComparison([emulated_gdf,no_regrowth_gdf,no_regrowth_diff],canada,ecozones,['Observed','No Regrowth','Difference'],'regrowth_harvest_scenario','No Regrowth Harvest Scenario')
+    plotHarvestComparison([reforested_gdf,emulated_gdf,reforested_diff],canada,ecozones,['Reforestation','Observed','Difference'],'reforest_harvest_scenario','Reforestation Harvest Scenario')
 
     #plot yearly carbon
     reforested_carbon_yearly = regional_reforested_agb.groupby(['year']).sum().reset_index()
