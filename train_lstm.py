@@ -57,7 +57,7 @@ def main(cfg: DictConfig):
     for epoch_count in range(cfg.model.epochs):
         total_start = time.time()
         print('Epoch:',epoch_count)
-        batch_train_loss = 0
+        train_loss = 0
         model.train()
         for src,tgt,id in train_loader:
             optimizer.zero_grad() #clears old gradients from previous steps 
@@ -70,10 +70,10 @@ def main(cfg: DictConfig):
             optimizer.step() #take step based on gradient
             train_loss += loss.item()
         metric = R2Score()
-        metric.update(pred_y.cpu().detach().numpy(),tgt.cpu().detach().numpy())
+        metric.update(pred_y,tgt)
         wandb.log({'train_r2_score':metric.compute()})
 
-        wandb.log({'batch_training_loss':batch_train_loss})
+        wandb.log({'batch_training_loss':train_loss})
 
         model.eval()
         valid_loss = 0
@@ -86,30 +86,30 @@ def main(cfg: DictConfig):
             wandb.log({"validation_loss": loss})
         wandb.log({'batch_valid_loss':valid_loss})
         metric = R2Score()
-        metric.update(pred_y.cpu().detach().numpy(),tgt.cpu().detach().numpy())
+        metric.update(pred_y,tgt)
         wandb.log({'validation_r2_score':metric.compute()})
         torch.save({'model_state_dict': model.state_dict(),'optimizer_state_dict': optimizer.state_dict(),}, f'{cfg.environment.checkpoint}/lstm_checkpoint_{wandb.run.name}_gpu.pt')
         epoch_time = time.time() - total_start
         wandb.log({'epoch time':epoch_time})
 
-    hold_out_loss=0
-    total_predictions = []
-    total_targets = []
-    for src,tgt,id in test_loader:
-        src = src.cuda()
-        tgt = tgt.cuda()
-        pred_y = model(src.float())
-        loss = loss_function(pred_y,tgt.float(),id[:,1].cuda())
-        hold_out_loss += loss.item() 
-        total_predictions.append(pred_y.cpu().detach().numpy())
-        total_targets.append(tgt.cpu().detach().numpy())
-        wandb.log({"hold_out_loss": loss})
-        print(pred_y.cpu().detach().numpy())
-        print(tgt.cpu().detach().numpy())
-    metric = R2Score()
-    metric.update(pred_y.cpu().detach().numpy(),tgt.cpu().detach().numpy())
-    wandb.log({'test_r2_score':metric.compute()})
-    wandb.log({'total_hold_out_loss':hold_out_loss})
+    # hold_out_loss=0
+    # total_predictions = []
+    # total_targets = []
+    # for src,tgt,id in test_loader:
+    #     src = src.cuda()
+    #     tgt = tgt.cuda()
+    #     pred_y = model(src.float())
+    #     loss = loss_function(pred_y,tgt.float(),id[:,1].cuda())
+    #     hold_out_loss += loss.item() 
+    #     total_predictions.append(pred_y.cpu().detach().numpy())
+    #     total_targets.append(tgt.cpu().detach().numpy())
+    #     wandb.log({"hold_out_loss": loss})
+    #     print(pred_y.cpu().detach().numpy())
+    #     print(tgt.cpu().detach().numpy())
+    # metric = R2Score()
+    # metric.update(pred_y.cpu().detach().numpy(),tgt.cpu().detach().numpy())
+    # wandb.log({'test_r2_score':metric.compute()})
+    # wandb.log({'total_hold_out_loss':hold_out_loss})
 
 
 main()

@@ -10,6 +10,8 @@ from sklearn.metrics import r2_score
 import numpy as np
 import rioxarray
 import xarray 
+import matplotlib.colors as colors
+
 
 
 def preprocessSoil(cfg):
@@ -38,14 +40,15 @@ def getRegionalValues(df:pd.DataFrame,ecozones_coords:pd.DataFrame,cfg,variable:
     # print(ecozones_coords['lat'].unique())
     df = pd.merge(df,ecozones_coords,on=['lat','lon'],how='inner')
     # print(df)
-    df['area'] = df.apply(lambda x: getArea(x['lat'],x['lon'],cfg),axis=1)
-    df[variable] = df[variable] * df['area'] /1e9 # make non-spatial,covnert to megatonnes
+    # if(variable != 'treeFrac'):
+    #     df['area'] = df.apply(lambda x: getArea(x['lat'],x['lon'],cfg),axis=1)
+    #     df[variable] = df[variable] * df['area'] /1e9 # make non-spatial,covnert to megatonnes
     #unit is now mtc 
     return df
 
 def pandasToGeo(df:pd.DataFrame,variable:str) -> gpd.GeoDataFrame:
     boxes = getGeometryBoxes(df)
-    df = gpd.GeoDataFrame(df[variable], geometry=boxes)
+    df = gpd.GeoDataFrame(df[[variable,'year']], geometry=boxes)
     return df
 
 #AGB FIGURE FOR ESTIMATE COMPARISON
@@ -62,54 +65,64 @@ def plotComparison(dataframes:list,canada:gpd.GeoDataFrame,ecozones:gpd.GeoDataF
         f, axes = plt.subplots(figsize=(30, 8),nrows=1,ncols=len(dataframes))
     max_val = max([x[column_name].max() for x in dataframes])
     min_val = min([x[column_name].min() for x in dataframes])
+    min_val = 0
+    max_val = 1000
     axes = axes.flatten()
-    norm = mpl.colors.Normalize(min_val,max_val,clip=True)
+    norm = mpl.colors.SymLogNorm(1,vmin=min_val,vmax=max_val)
     for ax_index in range(0,len(axes)):
         canada.plot(ax=axes[ax_index],alpha=0.1)
         ecozones.plot(ax=axes[ax_index],color='white',edgecolor='black',alpha=0.1)
         ax = dataframes[ax_index].plot(ax=axes[ax_index],column=column_name,norm=norm,cmap='Greens')
-        ax.set_xlabel('Longitude',fontsize=40)
-        ax.set_ylabel('Latitude',fontsize=40)
+        ax.set_xlabel('Longitude',fontsize=35)
+        ax.set_ylabel('Latitude',fontsize=35)
         ax.tick_params(axis='both', which='major', labelsize=40)
         
         x = mpl.image.AxesImage(ax=axes[ax_index])
         axes[ax_index].title.set_text(titles[ax_index])
-        axes[ax_index].title.set_fontsize(40)
-    m = plt.cm.ScalarMappable(cmap='Greens')
-    m.set_array(dataframes[0][column_name])
+        axes[ax_index].title.set_fontsize(35)
+    m = plt.cm.ScalarMappable(cmap='Greens',norm=norm)
+    # m.set_array(norm(dataframes[0][column_name]))
     cbar = plt.colorbar(m,fraction=0.026, pad=0.04)
-    cbar.ax.set_ylabel(f'{column_name.capitalize()} (Mt C)',fontsize=40)
-    cbar.ax.tick_params(labelsize=40)
-
+    cbar.ax.set_ylabel(f'{column_name.capitalize()} (kg/m2)',fontsize=35)
+    cbar.ax.tick_params(labelsize=30)
     f.tight_layout()
-    f.suptitle(f'Comparison of {column_name.capitalize()} Estimates',fontsize=60)
     plt.savefig(f'figures/{filename}.png')
 
-def plotSoilComparison(dataframes:list,canada:gpd.GeoDataFrame,ecozones:gpd.GeoDataFrame,titles:list,filename:str,column_name:str) -> None:
+def plotSoilComparison(dataframes:list,canada:gpd.GeoDataFrame,ecozones:gpd.GeoDataFrame,titles:list,filename:str,column_name:str,units:str) -> None:
 
-    f, axes = plt.subplots(figsize=(30, 8),nrows=1,ncols=3)
+    f, axes = plt.subplots(figsize=(30, 8),nrows=1,ncols=len(dataframes))
 
     axes = axes.flatten()
+    max_val = np.argmax([x[column_name].max() for x in dataframes])
+    min_val = np.argmin([x[column_name].min() for x in dataframes])
+    min_val = 0
+    max_val = 1000
+    # print(dataframes[max_val])
+    # print(dataframes)
+    # print(min(dataframes[max_val].min()))
+    # print(max(dataframes[max_val]))
+    # norm = mpl.colors.SymLogNorm(1,vmin=dataframes[max_val][column_name].min(),vmax=dataframes[max_val][column_name].max())
+    norm = mpl.colors.SymLogNorm(1,vmin=min_val,vmax=max_val)
     for ax_index in range(0,len(axes)):   
-        norm = mpl.colors.Normalize(dataframes[ax_index].min(),dataframes[ax_index].max(),clip=True)
+        # norm = mpl.colors.Normalize(dataframes[ax_index].min(),dataframes[ax_index].max(),clip=True)
         canada.plot(ax=axes[ax_index],alpha=0.1)
         ecozones.plot(ax=axes[ax_index],color='white',edgecolor='black',alpha=0.1)
         ax = dataframes[ax_index].plot(ax=axes[ax_index],column=column_name,norm=norm,cmap='Greens')
-        ax.set_xlabel('Longitude',fontsize=40)
-        ax.set_ylabel('Latitude',fontsize=40)
-        ax.tick_params(axis='both', which='major', labelsize=40)
+        ax.set_xlabel('Longitude',fontsize=30)
+        ax.set_ylabel('Latitude',fontsize=30)
+        ax.tick_params(axis='both', which='major', labelsize=30)
         
         x = mpl.image.AxesImage(ax=axes[ax_index])
         axes[ax_index].title.set_text(titles[ax_index])
-        axes[ax_index].title.set_fontsize(40)
-        m = plt.cm.ScalarMappable(cmap='Greens')
-        m.set_array(dataframes[ax_index][column_name])
-        cbar = plt.colorbar(m,fraction=0.026, pad=0.04,ax=ax)
-        cbar.ax.set_ylabel(f'{column_name.capitalize()} (Mt C)',fontsize=40)
-        cbar.ax.tick_params(labelsize=40)
+        axes[ax_index].title.set_fontsize(30)
+    m = plt.cm.ScalarMappable(cmap='Greens',norm=norm)
+    # m.set_array(dataframes[0][column_name])
+    cbar = plt.colorbar(m,fraction=0.026, pad=0.04,ax=ax,norm=norm)
+    cbar.ax.set_ylabel(f'{column_name} ({units})',fontsize=30)
+    cbar.ax.tick_params(labelsize=30)
 
     f.tight_layout()
-    f.suptitle(f'Comparison of {column_name.capitalize()} Estimates',fontsize=60)
+    # f.suptitle(f'Comparison of Soil Carbon Estimates',fontsize=60)
     plt.savefig(f'figures/{filename}.png')
 
 @hydra.main(version_base=None, config_path="../conf", config_name="config")
@@ -126,7 +139,10 @@ def main(cfg: DictConfig):
     cesm_data = pd.read_csv(f'{cfg.data}/cesm_data_variant.csv')
     cesm_data = cesm_data.groupby(['year','lat','lon']).mean().reset_index()     #transform from rolling window to yearly average
     cesm_data = cesm_data[cesm_data['year'] == 2014]
-
+    input_data = pd.read_csv(f'{cfg.data}/observed_timeseries{cfg.model.seq_len}_data.csv')
+    input_data = input_data.groupby(['year','lat','lon']).mean().reset_index()  
+    input_data = input_data[input_data['year'] == 2014]
+    print(input_data.head())
     ecozones_coords = pd.read_csv(f'{cfg.data}/ecozones_coordinates.csv')
     ecozones_coords = ecozones_coords[ecozones_coords['zone'].isin(list_of_regions)]
 
@@ -141,13 +157,14 @@ def main(cfg: DictConfig):
     cesm_data['lat'] = cesm_data['lat'].round(6)
     ecozones_coords['lat'] = ecozones_coords['lat'].round(6)
     soil_pdf['lat'] = soil_pdf['lat'].round(6)
+    input_data['lat'] = input_data['lat'].round(6)
 
     #emulated has smallest area due to ERA nodata, so we need to merge on that
     walker_agb = pd.merge(walker_agb,emulated,on=['lat','lon'],how='inner',suffixes=('','_emulated'))
     nfis_agb = pd.merge(nfis_agb,emulated,on=['lat','lon'],how='inner',suffixes=('','_emulated'))
     cesm_data = pd.merge(cesm_data,emulated,on=['lat','lon'],how='inner',suffixes=('','_emulated'))
     soil_pdf = pd.merge(soil_pdf,emulated,on=['lat','lon'],how='inner',suffixes=('','_emulated'))
-
+    input_data = pd.merge(input_data,emulated,on=['lat','lon'],how='inner',suffixes=('','_emulated'))
 
     #soil has missing data, so merge to remove areas that are missing
     cesm_data_soil = pd.merge(cesm_data,soil_pdf,on=['lat','lon'],how='inner',suffixes=('','_soil'))
@@ -176,9 +193,22 @@ def main(cfg: DictConfig):
     cesm_soil_gdf = pandasToGeo(regional_cesm_soil,'cSoilAbove1m')
     emulated_soil_gdf = pandasToGeo(regional_emulated_soil,'cSoilAbove1m')
 
-    plotComparison([nfis_gdf,walker_gdf,emulated_gdf,cesm_gdf],canada,ecozones,['Matasci et al. (2015)','Walker et al. (2015)','Emulated (2015)','CESM (2014)'],'agb_comparison','agb')
-    plotSoilComparison([soil_gdf,emulated_soil_gdf,cesm_soil_gdf],canada,ecozones,['Sothe et al. (2015)','Emulated (2015)','CESM (2014)'],'soil_comparison','cSoilAbove1m')
 
+    # for var in cfg.model.input:
+    #     regional_observed = pd.merge(input_data,ecozones_coords,on=['lat','lon'],how='inner')
+    #     regional_cesm = pd.merge(cesm_data,ecozones_coords,on=['lat','lon'],how='inner')
+
+    #     regional_observed_gdf = pandasToGeo(regional_observed,var)
+    #     regional_cesm_gdf = pandasToGeo(regional_cesm,var)
+    #     difference = regional_observed_gdf.copy()
+    #     difference[var] = regional_observed_gdf[var] - regional_cesm_gdf[var]
+    #     units = {'tas_JJA':'K','tas_DJF':'K','pr':'kg m-2 s-1','ps':'Pa','treeFrac':'%','tsl':'K'}
+    #     plotSoilComparison([regional_observed_gdf,regional_cesm_gdf,difference],canada,ecozones,['ERANFIS (2014)','CESM2 (2014)','Difference'],f'observed_{var}_cesm_comparison',var,units[var])
+    
+    plotComparison([nfis_gdf,walker_gdf,emulated_gdf,cesm_gdf],canada,ecozones,['Matasci et al. (year=2015)','Walker et al. (year=2015)','ERANFIS/Emulation (year=2015)','CESM2 Model Output (year=2014)'],'agb_comparison','agb')
+    plotSoilComparison([soil_gdf,emulated_soil_gdf,cesm_soil_gdf],canada,ecozones,['Sothe et al. (year=2015)','ERANFIS/Emulation (year=2015)','CESM2 Model Output (year=2014)'],'soil_comparison','cSoilAbove1m','kg/m2')
+    plotComparison([cesm_gdf,emulated_gdf],canada,ecozones,['CESM2 Model Output (year=2014)','ERANFIS/Emulation (year=2015)'],'cesm_emulated_comparison','agb')
+    plotSoilComparison([cesm_soil_gdf,emulated_soil_gdf],canada,ecozones,['CESM2 Model Output (year=2014)','ERANFIS/Emulation (year=2015)'],'cesm_emulated_soil_comparison','cSoilAbove1m','kg/m2')
     #REGIONAL SUMS
     for region in list_of_regions:
         print(f'For {region}')
@@ -202,6 +232,18 @@ def main(cfg: DictConfig):
 
     print(f'{nfis_sum} & {walker_sum} & {emulated_sum} & {cesm_sum} & {soil_sum} & {emulated_soil_sum} & {cesm_soil_sum} \\\\')
 
+    #merge pred and sothe and visualize r2 value
+    def visualize_r2(predicted,actual,name):
+        fig, ax = plt.subplots(figsize=(10, 10))
+        ax.scatter(predicted, actual, s=100, edgecolor="black",linewidth=0.5)
+        ax.set_xlabel("Predicted")
+        ax.set_ylabel("Observed")
+        ax.plot([actual.min(), actual.max()], [actual.min(), actual.max()], 'k--', lw=4)
+        ax.plot([predicted.min(), predicted.max()], [predicted.min(), predicted.max()], 'k--', lw=4)
+
+        ax.annotate("r-squared = {:.3f}".format(r2_score(actual, predicted)), (0, 1))
+
+        plt.savefig(f'figures/{name}_r2.png')
 
     #R2 value of emulation,CESM compared to NFIS, walker 
     print(f'R2 value of emulation compared to NFIS: {round(r2_score(regional_nfis_agb["agb"],regional_emulated_agb["agb"]),2)}')
@@ -210,6 +252,16 @@ def main(cfg: DictConfig):
     print(f'R2 value of CESM compared to Walker: {round(r2_score(regional_walker_agb["agb"],regional_cesm_agb["agb"]), 2)}')
     print(f'R2 value of CESM compared to Sothe: {round(r2_score(regional_sothe_soil["cSoilAbove1m"],regional_cesm_soil["cSoilAbove1m"]), 2)}')
     print(f'R2 value of Emulated compared to Sothe: {round(r2_score(regional_sothe_soil["cSoilAbove1m"],regional_emulated_soil["cSoilAbove1m"]), 2)}')
+    print(f'R2 value of Emulated compared to CESM2: {round(r2_score(regional_cesm_agb["agb"],regional_emulated_agb["agb"]),2)}')
+    print(f'R2 value of Emulated compared to CESM2 SOIL: {round(r2_score(regional_cesm_soil["cSoilAbove1m"],regional_emulated_soil["cSoilAbove1m"]),2)}')
+
+    visualize_r2(regional_emulated_agb["agb"],regional_nfis_agb["agb"],'emulated_nfis')
+    visualize_r2(regional_emulated_agb["agb"],regional_walker_agb["agb"],'emulated_walker')
+    visualize_r2(regional_cesm_agb["agb"],regional_nfis_agb["agb"],'cesm_nfis')
+    visualize_r2(regional_cesm_agb["agb"],regional_walker_agb["agb"],'cesm_walker')
+    visualize_r2(regional_cesm_soil["cSoilAbove1m"],regional_sothe_soil["cSoilAbove1m"],'cesm_sothe')
+    visualize_r2(regional_emulated_soil["cSoilAbove1m"],regional_sothe_soil["cSoilAbove1m"],'emulated_sothe')
+    visualize_r2(regional_emulated_agb["agb"],regional_cesm_agb["agb"],'emulated_cesm')
 
     #RMSE values of emulation,CESM compared to NFIS, walker
     print(f'MSE value of emulation compared to NFIS: {round(mean_squared_error(regional_nfis_agb["agb"],regional_emulated_agb["agb"]),2)}')
@@ -218,7 +270,8 @@ def main(cfg: DictConfig):
     print(f'MSE value of CESM compared to Walker: {round(mean_squared_error(regional_walker_agb["agb"],regional_cesm_agb["agb"]),2)}')
     print(f'MSE value of CESM compared to Sothe: {round(mean_squared_error(regional_sothe_soil["cSoilAbove1m"],regional_cesm_soil["cSoilAbove1m"]),2)}')
     print(f'MSE value of emulated compared to Sothe: {round(mean_squared_error(regional_sothe_soil["cSoilAbove1m"],regional_emulated_soil["cSoilAbove1m"]),2)}')
-
+    print(f'MSE value of emulated compared to CESM2: {round(mean_squared_error(regional_cesm_agb["agb"],regional_emulated_agb["agb"]),2)}')
+    print(f'MSE value of emulated compared to CESM2: {round(mean_squared_error(regional_cesm_soil["cSoilAbove1m"],regional_emulated_soil["cSoilAbove1m"]),2)}')
 
 if __name__ == "__main__":
     main()

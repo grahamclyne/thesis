@@ -14,13 +14,13 @@ import geopandas as gpd
 from preprocessing.utils import getGeometryBoxes
 
 def plotNSTransect(lon,coordinates):
-    df = gpd.GeoDataFrame([],geometry=getGeometryBoxes(coordinates[coordinates['lon'] == lon]))
+    df = gpd.GeoDataFrame([],geometry=getGeometryBoxes(coordinates[(coordinates['lon'] == lon) & (coordinates['lat'] == 49.476440)]))
     canada = gpd.read_file(f'data/shapefiles/lpr_000b16a_e/lpr_000b16a_e.shp')
     canada  = canada.to_crs('4326')
     f, axes = plt.subplots(figsize=(10, 10))
     canada.plot(ax=axes,alpha=0.2)
     df.plot(ax=axes)
-    plt.title(f'Forest North-South Transect at Longitude {lon}',fontsize=15)
+    # plt.title(f'Forest North-South Transect at Longitude {lon}',fontsize=15)
     plt.savefig(f'figures/NS_transect_{lon}.png',bbox_inches='tight')
 
 #gets mean,std for 1984-2014
@@ -44,7 +44,7 @@ def getAttribution(input,cfg,ig,target):
 
 
 def visualizeShapleyValues(cfg,model,final_input,lon):
-    final_input = final_input[(final_input['lon'] == lon)]
+    final_input = final_input[(final_input['lon'] == lon) & (final_input['lat'] == 49.476440)]
     scaler = load(open(f'{cfg.project}/checkpoint/lstm_scaler_{cfg.run_name}.pkl', 'rb'))
     final_input.loc[:,tuple(cfg.model.input)] = scaler.transform(final_input[cfg.model.input])
     final_input= final_input[cfg.model.input + cfg.model.id]
@@ -52,11 +52,12 @@ def visualizeShapleyValues(cfg,model,final_input,lon):
     final_input = torch.tensor(ds.data[:,:,:6]).float()
     e = shap.DeepExplainer(model,final_input)
     shap_values = e.shap_values(final_input)
-    sum = (shap_values[0] + shap_values[1] + shap_values[2] + shap_values[3])/4
+    agb_sum = (shap_values[0] + shap_values[1] + shap_values[2])/3
     # shap.summary_plot(sum.reshape(-1,6), features=final_input.reshape(-1,6), feature_names=['ps','tsl','treeFrac','pr','tas_DJF','tas_JJA'])
-    shap.summary_plot(sum.reshape(-1,6), features=final_input.reshape(-1,6), feature_names=['ps','tsl','treeFrac','pr','tas_DJF','tas_JJA'])
+    shap.summary_plot(agb_sum.reshape(-1,6), features=final_input.reshape(-1,6), feature_names=['ps','tsl','treeFrac','pr','tas_DJF','tas_JJA'],cmap='inferno')
+    soil_sum = shap_values[3]
+    shap.summary_plot(soil_sum.reshape(-1,6), features=final_input.reshape(-1,6), feature_names=['ps','tsl','treeFrac','pr','tas_DJF','tas_JJA'],cmap='inferno')
 
-    plt.savefig(f'figures/shapley_values_{lon}.png')
 
 #plots for 1984-2014
 def visualizeAttribution(attr,ds,lon,cfg,means,stds,target_name):
@@ -78,7 +79,7 @@ def visualizeAttribution(attr,ds,lon,cfg,means,stds,target_name):
                                                         cmap=cmap,
                                                         sign=sign, 
                                                         use_pyplot=False)
-        f.suptitle(f'Attribution for {target_name}',fontsize=15)
+        # f.suptitle(f'Attribution for {target_name}',fontsize=15)
         f.subplots_adjust(top=0.85)
         f.tight_layout(rect=[0, 0.03, 1, 0.95])
         f.savefig(f'figures/{sign}_attr_{lon}_{target_name}.png')
@@ -87,7 +88,7 @@ def visualizeAttribution(attr,ds,lon,cfg,means,stds,target_name):
 
 #get attribution for a single transect
 def NS_transect_attr_data(df,cfg,lon,ig,target):
-    transect = df[(df['lon'] == lon)]
+    transect = df[(df['lon'] == lon)& (df['lat'] == 49.476440)]
     #reduce rolling window data back to single value
     transect = transect.groupby(['year','lat','lon']).mean().reset_index()
     total_attr = np.zeros((30,6))
@@ -121,19 +122,19 @@ def main(cfg: DictConfig):
     means,stds = get_df_means_stds(final_input,cfg)
     target = 2 
     target_name = 'cStem'
-    lon = -118.75
+    lon = -73.75
     visualizeShapleyValues(cfg,model,final_input,lon)
 
-    lat = 56.073299
-    attr,ds = NS_transect_attr_data(final_input,cfg,lon,ig,target)
-    visualizeAttribution(attr,ds,lon,cfg,means,stds,target_name)
-    plotNSTransect(lon,ecozones_coordinates)
-
-    lon = -73.75
     lat = 49.476440
     attr,ds = NS_transect_attr_data(final_input,cfg,lon,ig,target)
     visualizeAttribution(attr,ds,lon,cfg,means,stds,target_name)
     plotNSTransect(lon,ecozones_coordinates)
+
+    # lon = -73.75
+    # lat = 49.476440
+    # attr,ds = NS_transect_attr_data(final_input,cfg,lon,ig,target)
+    # visualizeAttribution(attr,ds,lon,cfg,means,stds,target_name)
+    # plotNSTransect(lon,ecozones_coordinates)
 
 
 
