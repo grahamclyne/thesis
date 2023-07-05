@@ -7,7 +7,7 @@ from omegaconf import DictConfig
 
 
 def lat_adjusted_mse(y_true, y_pred,lat):
-    lat_factor = np.cos(np.deg2rad(lat))
+    lat_factor = torch.cos(np.deg2rad(lat))
     mse = torch.mean(torch.square(y_true - y_pred),-1)
     lat_mse = mse * lat_factor
     return torch.mean(lat_mse)

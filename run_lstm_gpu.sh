@@ -1,10 +1,10 @@
 #!/bin/bash
-#SBATCH --time=2:00:00
+#SBATCH --time=1:00:00
 #SBATCH --account=def-dmatthew
 #SBATCH --gres=gpu:1 # request a GPU
 
 #SBATCH --cpus-per-task=1
-#SBATCH --mem=10G
+#SBATCH --mem=130G
 module load python/3.9
 module load geos
 module load proj

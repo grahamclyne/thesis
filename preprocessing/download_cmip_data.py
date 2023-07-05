@@ -2,7 +2,7 @@ import os
 
 from omegaconf import DictConfig
 import hydra
-@hydra.main(version_base=None, config_path="conf", config_name="config")
+@hydra.main(version_base=None, config_path="../conf", config_name="config")
 def main(cfg: DictConfig):
     for table in cfg.cmip_variable_map:
         for var in cfg.cmip_variable_map[table]:

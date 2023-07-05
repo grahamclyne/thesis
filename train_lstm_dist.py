@@ -85,20 +85,13 @@ def get_training_data(cfg,run):
     test_ds = CMIPTimeSeriesDataset(test_ds,cfg.model.seq_len,len(cfg.model.input + cfg.model.output + cfg.model.id),cfg)
 
     # train,validation = torch.utils.data.random_split(train_ds, [0.8,0.2], generator=torch.Generator().manual_seed(0))
-    if(cfg.environment.distributed):
-        train_sampler = torch.utils.data.DistributedSampler(train_ds)
-        validation_sampler = torch.utils.data.DistributedSampler(val_ds)
-        test_sampler = torch.utils.data.DistributedSampler(test_ds)
-        train_ldr = torch.utils.data.DataLoader(train_ds,batch_size=cfg.model.batch_size,shuffle=False, sampler=train_sampler)#train sample shuffles for us
-        validation_ldr = torch.utils.data.DataLoader(val_ds,batch_size=cfg.model.batch_size,shuffle=False,sampler=validation_sampler)
-        test_ldr = torch.utils.data.DataLoader(test_ds,batch_size=cfg.model.batch_size,shuffle=False,sampler=test_sampler)
-    else:
-        train_sampler = None
-        validation_sampler = None
-        test_sampler = None
-        train_ldr = torch.utils.data.DataLoader(train_ds,batch_size=cfg.model.batch_size,shuffle=True)#train sample shuffles for us
-        validation_ldr = torch.utils.data.DataLoader(val_ds,batch_size=cfg.model.batch_size,shuffle=True)
-        test_ldr = torch.utils.data.DataLoader(test_ds,batch_size=cfg.model.batch_size,shuffle=True)
+    train_sampler = torch.utils.data.DistributedSampler(train_ds)
+    validation_sampler = torch.utils.data.DistributedSampler(val_ds)
+    test_sampler = torch.utils.data.DistributedSampler(test_ds)
+    train_ldr = torch.utils.data.DataLoader(train_ds,batch_size=cfg.model.batch_size,shuffle=False, sampler=train_sampler)#train sample shuffles for us
+    validation_ldr = torch.utils.data.DataLoader(val_ds,batch_size=cfg.model.batch_size,shuffle=False,sampler=validation_sampler)
+    test_ldr = torch.utils.data.DataLoader(test_ds,batch_size=cfg.model.batch_size,shuffle=False,sampler=test_sampler)
+     t_ldr = torch.utils.data.DataLoader(test_ds,batch_size=cfg.model.batch_size,shuffle=True)
     # hold_out_ldr = torch.utils.data.DataLoader(hold_out,batch_size=cfg.model.batch_size,shuffle=True)
     return train_sampler,train_ldr,validation_sampler,validation_ldr,test_sampler,test_ldr
 

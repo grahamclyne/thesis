@@ -53,3 +53,6 @@ k fold cross validation
 split precipitation by season?
 get optimal batch size for project
 what is hist_interval?
+include fHarvestToProduct analysis
+expand LAMSE application
+does normalizing precip remove its variability? how does normalizing affect this
