@@ -11,4 +11,4 @@ module load proj
 
 
 source ~/ENV/bin/activate
-python -m test_preprocess
+python -m preprocessing.preprocess_nfis

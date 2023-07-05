@@ -21,7 +21,7 @@ def plotNSTransect(lon,coordinates):
     canada.plot(ax=axes,alpha=0.2)
     df.plot(ax=axes)
     plt.title(f'Forest North-South Transect at Longitude {lon}',fontsize=15)
-    plt.savefig(f'NS_transect_{lon}.png')
+    plt.savefig(f'figures/NS_transect_{lon}.png',bbox_inches='tight')
 
 #gets mean,std for 1984-2014
 def get_df_means_stds(df,cfg):
@@ -56,6 +56,7 @@ def visualizeShapleyValues(cfg,model,final_input,lon):
     # shap.summary_plot(sum.reshape(-1,6), features=final_input.reshape(-1,6), feature_names=['ps','tsl','treeFrac','pr','tas_DJF','tas_JJA'])
     shap.summary_plot(sum.reshape(-1,6), features=final_input.reshape(-1,6), feature_names=['ps','tsl','treeFrac','pr','tas_DJF','tas_JJA'])
 
+    plt.savefig(f'figures/shapley_values_{lon}.png')
 
 #plots for 1984-2014
 def visualizeAttribution(attr,ds,lon,cfg,means,stds,target_name):
@@ -80,7 +81,7 @@ def visualizeAttribution(attr,ds,lon,cfg,means,stds,target_name):
         f.suptitle(f'Attribution for {target_name}',fontsize=15)
         f.subplots_adjust(top=0.85)
         f.tight_layout(rect=[0, 0.03, 1, 0.95])
-        f.savefig(f'{sign}_attr_{lon}_{target_name}.png')
+        f.savefig(f'figures/{sign}_attr_{lon}_{target_name}.png')
     plot_attr('positive','Greens')
     plot_attr('negative','Reds')
 
@@ -100,7 +101,7 @@ def NS_transect_attr_data(df,cfg,lon,ig,target):
 
 
 
-@hydra.main(version_base=None, config_path="conf", config_name="config")
+@hydra.main(version_base=None, config_path="../conf", config_name="config")
 def main(cfg: DictConfig):
     model = RegressionLSTM(num_sensors=len(cfg.model.input), hidden_units=cfg.model.hidden_units,cfg=cfg)
     model_name = cfg.run_name
@@ -120,18 +121,21 @@ def main(cfg: DictConfig):
     means,stds = get_df_means_stds(final_input,cfg)
     target = 2 
     target_name = 'cStem'
+    lon = -118.75
+    visualizeShapleyValues(cfg,model,final_input,lon)
+
+    lat = 56.073299
+    attr,ds = NS_transect_attr_data(final_input,cfg,lon,ig,target)
+    visualizeAttribution(attr,ds,lon,cfg,means,stds,target_name)
+    plotNSTransect(lon,ecozones_coordinates)
+
     lon = -73.75
     lat = 49.476440
-    # attr,ds = NS_transect_attr_data(final_input,cfg,lon,ig,target)
-    # visualizeAttribution(attr,ds,lon,cfg,means,stds,target_name)
-    # plotNSTransect(lon,ecozones_coordinates)
+    attr,ds = NS_transect_attr_data(final_input,cfg,lon,ig,target)
+    visualizeAttribution(attr,ds,lon,cfg,means,stds,target_name)
+    plotNSTransect(lon,ecozones_coordinates)
 
-    # lon = -118.75
-    # lat = 56.073299
-    # attr,ds = NS_transect_attr_data(final_input,cfg,lon,ig,target)
-    # visualizeAttribution(attr,ds,lon,cfg,means,stds,target_name)
-    # plotNSTransect(lon,ecozones_coordinates)
 
-    visualizeShapleyValues(cfg,model,final_input,lon)
+
 main()
 

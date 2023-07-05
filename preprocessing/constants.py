@@ -1,5 +1,5 @@
 CMIP_VARIABLES = {'Lmon':['cCwd','cVeg','cLitter','cLeaf','cRoot','evspsblsoi','lai','tsl','mrro','mrsos','grassFrac','shrubFrac','cropFrac','baresoilFrac','residualFrac','treeFrac','shrubFrac'],'Emon':['cSoilAbove1m','cSoil','cStem','wetlandFrac','cOther'],'Amon':['ps','pr','tas']}
-RAW_CMIP_VARIABLES = ['etrat','cSoilAbove1m','cOther','cCwd','cVeg','cLitter','cLeaf','cRoot','evspsblsoi','lai','tsl','mrro','mrsos','grassFrac','shrubFrac','cropFrac','baresoilFrac','residualFrac','treeFrac','shrubFrac','cSoil','cStem','wetlandFrac','ps','pr','tas']
+RAW_CMIP_VARIABLES = ['cSoilAbove1m','cOther','cCwd','cVeg','cLitter','cLeaf','cRoot','evspsblsoi','lai','tsl','mrro','mrsos','grassFrac','shrubFrac','cropFrac','baresoilFrac','residualFrac','treeFrac','shrubFrac','cSoil','cStem','wetlandFrac','ps','pr','tas']
 RAW_ERA_VARIABLES = ['2m_temperature', 'evaporation_from_bare_soil', 'leaf_area_index_high_vegetation','leaf_area_index_low_vegetation', 'runoff', 'skin_temperature','soil_temperature_level_1', 'surface_pressure', 'total_precipitation','volumetric_soil_water_layer_1']
 PROCESSED_ERA_VARIABLES = ['t2m_DJF', 't2m_MAM', 't2m_JJA', 't2m_SON', 'year', 'lat', 'lon', 'evabs', 'lai_hv', 'lai_lv', 'ro', 'skt', 'stl1', 'sp', 'tp', 'swvl1']
 RAW_NFIS_VARIABLES = ['no_change','water','snow_ice','rock_rubble','exposed_barren_land','bryoids','shrubs','wetland','wetland-treed','herbs','coniferous','broadleaf','mixedwood']
@@ -121,12 +121,3 @@ MODEL TARGET VARIABLES (DEPENDENT VARIABLES)
 
 
 """
-
-
-
-
-
-
-RAW_CMIP_VARIABLES = ['cOther','cCwd','cVeg','cLitter','cLeaf','cRoot','evspsblsoi',
-'lai','tsl','mrro','mrsos','grassFrac','shrubFrac','cropFrac','baresoilFrac','residualFrac',
-'treeFrac','shrubFrac','cSoil','cStem','wetlandFrac','ps','pr','tas']

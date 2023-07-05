@@ -48,7 +48,7 @@ def infer_lstm(df,cfg,tsl_offset=0):
     return results_df
 
 
-@hydra.main(version_base=None, config_path="conf", config_name="config")
+@hydra.main(version_base=None, config_path="../conf", config_name="config")
 def main(cfg: DictConfig):
     input_data = pd.read_csv(f'{cfg.data}/observed_timeseries{cfg.model.seq_len}_data.csv')
     results = infer_lstm(input_data,cfg)
