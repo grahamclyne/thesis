@@ -7,7 +7,7 @@ project: '/Users/gclyne/thesis'
 data: '/Users/gclyne/thesis/data'
 entity: 'gclyne'
 wandb_project: 'dist-lstm-land-model'
-run_name: 'amber-forest-67'
+run_name: 'curious_galaxy-49'
 study_area: 'ecozones'
 preprocess_data_set: 'nfis_biomass'
 num_cores: 2

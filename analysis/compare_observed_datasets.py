@@ -6,12 +6,13 @@ import geopandas as gpd
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from sklearn.metrics import mean_squared_error
-from sklearn.metrics import r2_score
+# from sklearn.metrics import scipy.stats.pearsonr
 import numpy as np
 import rioxarray
 import xarray 
 import matplotlib.colors as colors
-
+from lstm_model import lat_adjusted_mse
+import scipy
 
 
 def preprocessSoil(cfg):
@@ -232,46 +233,46 @@ def main(cfg: DictConfig):
 
     print(f'{nfis_sum} & {walker_sum} & {emulated_sum} & {cesm_sum} & {soil_sum} & {emulated_soil_sum} & {cesm_soil_sum} \\\\')
 
-    #merge pred and sothe and visualize r2 value
-    def visualize_r2(predicted,actual,name):
-        fig, ax = plt.subplots(figsize=(10, 10))
-        ax.scatter(predicted, actual, s=100, edgecolor="black",linewidth=0.5)
-        ax.set_xlabel("Predicted")
-        ax.set_ylabel("Observed")
-        ax.plot([actual.min(), actual.max()], [actual.min(), actual.max()], 'k--', lw=4)
-        ax.plot([predicted.min(), predicted.max()], [predicted.min(), predicted.max()], 'k--', lw=4)
+    # #merge pred and sothe and visualize r2 value
+    # def visualize_r2(predicted,actual,name):
+    #     fig, ax = plt.subplots(figsize=(10, 10))
+    #     ax.scatter(predicted, actual, s=100, edgecolor="black",linewidth=0.5)
+    #     ax.set_xlabel("Predicted")
+    #     ax.set_ylabel("Observed")
+    #     ax.plot([actual.min(), actual.max()], [actual.min(), actual.max()], 'k--', lw=4)
+    #     ax.plot([predicted.min(), predicted.max()], [predicted.min(), predicted.max()], 'k--', lw=4)
 
-        ax.annotate("r-squared = {:.3f}".format(r2_score(actual, predicted)), (0, 1))
+    #     ax.annotate("r-squared = {:.3f}".format(scipy.stats.pearsonr(actual, predicted)), (0, 1))
 
-        plt.savefig(f'figures/{name}_r2.png')
+    #     plt.savefig(f'figures/{name}_r2.png')
 
     #R2 value of emulation,CESM compared to NFIS, walker 
-    print(f'R2 value of emulation compared to NFIS: {round(r2_score(regional_nfis_agb["agb"],regional_emulated_agb["agb"]),2)}')
-    print(f'R2 value of emulation compared to Walker: {round(r2_score(regional_walker_agb["agb"],regional_emulated_agb["agb"]),2)}')
-    print(f'R2 value of CESM compared to NFIS: {round(r2_score(regional_nfis_agb["agb"],regional_cesm_agb["agb"]), 2)}')
-    print(f'R2 value of CESM compared to Walker: {round(r2_score(regional_walker_agb["agb"],regional_cesm_agb["agb"]), 2)}')
-    print(f'R2 value of CESM compared to Sothe: {round(r2_score(regional_sothe_soil["cSoilAbove1m"],regional_cesm_soil["cSoilAbove1m"]), 2)}')
-    print(f'R2 value of Emulated compared to Sothe: {round(r2_score(regional_sothe_soil["cSoilAbove1m"],regional_emulated_soil["cSoilAbove1m"]), 2)}')
-    print(f'R2 value of Emulated compared to CESM2: {round(r2_score(regional_cesm_agb["agb"],regional_emulated_agb["agb"]),2)}')
-    print(f'R2 value of Emulated compared to CESM2 SOIL: {round(r2_score(regional_cesm_soil["cSoilAbove1m"],regional_emulated_soil["cSoilAbove1m"]),2)}')
+    print(f'R2 value of emulation compared to NFIS: {round(scipy.stats.pearsonr(regional_nfis_agb["agb"],regional_emulated_agb["agb"]).statistic,2)}')
+    print(f'R2 value of emulation compared to Walker: {round(scipy.stats.pearsonr(regional_walker_agb["agb"],regional_emulated_agb["agb"]).statistic,2)}')
+    print(f'R2 value of CESM compared to NFIS: {round(scipy.stats.pearsonr(regional_nfis_agb["agb"],regional_cesm_agb["agb"]).statistic,2)}')
+    print(f'R2 value of CESM compared to Walker: {round(scipy.stats.pearsonr(regional_walker_agb["agb"],regional_cesm_agb["agb"]).statistic, 2)}')
+    print(f'R2 value of CESM compared to Sothe: {round(scipy.stats.pearsonr(regional_sothe_soil["cSoilAbove1m"],regional_cesm_soil["cSoilAbove1m"]).statistic, 2)}')
+    print(f'R2 value of Emulated compared to Sothe: {round(scipy.stats.pearsonr(regional_sothe_soil["cSoilAbove1m"],regional_emulated_soil["cSoilAbove1m"]).statistic, 2)}')
+    print(f'R2 value of Emulated compared to CESM2: {round(scipy.stats.pearsonr(regional_cesm_agb["agb"],regional_emulated_agb["agb"]).statistic,2)}')
+    print(f'R2 value of Emulated compared to CESM2 SOIL: {round(scipy.stats.pearsonr(regional_cesm_soil["cSoilAbove1m"],regional_emulated_soil["cSoilAbove1m"]).statistic,2)}')
 
-    visualize_r2(regional_emulated_agb["agb"],regional_nfis_agb["agb"],'emulated_nfis')
-    visualize_r2(regional_emulated_agb["agb"],regional_walker_agb["agb"],'emulated_walker')
-    visualize_r2(regional_cesm_agb["agb"],regional_nfis_agb["agb"],'cesm_nfis')
-    visualize_r2(regional_cesm_agb["agb"],regional_walker_agb["agb"],'cesm_walker')
-    visualize_r2(regional_cesm_soil["cSoilAbove1m"],regional_sothe_soil["cSoilAbove1m"],'cesm_sothe')
-    visualize_r2(regional_emulated_soil["cSoilAbove1m"],regional_sothe_soil["cSoilAbove1m"],'emulated_sothe')
-    visualize_r2(regional_emulated_agb["agb"],regional_cesm_agb["agb"],'emulated_cesm')
-
+    # visualize_r2(regional_emulated_agb["agb"],regional_nfis_agb["agb"],'emulated_nfis')
+    # visualize_r2(regional_emulated_agb["agb"],regional_walker_agb["agb"],'emulated_walker')
+    # visualize_r2(regional_cesm_agb["agb"],regional_nfis_agb["agb"],'cesm_nfis')
+    # visualize_r2(regional_cesm_agb["agb"],regional_walker_agb["agb"],'cesm_walker')
+    # visualize_r2(regional_cesm_soil["cSoilAbove1m"],regional_sothe_soil["cSoilAbove1m"],'cesm_sothe')
+    # visualize_r2(regional_emulated_soil["cSoilAbove1m"],regional_sothe_soil["cSoilAbove1m"],'emulated_sothe')
+    # visualize_r2(regional_emulated_agb["agb"],regional_cesm_agb["agb"],'emulated_cesm')
+    import torch
     #RMSE values of emulation,CESM compared to NFIS, walker
-    print(f'MSE value of emulation compared to NFIS: {round(mean_squared_error(regional_nfis_agb["agb"],regional_emulated_agb["agb"]),2)}')
-    print(f'MSE value of emulation compared to Walker: {round(mean_squared_error(regional_walker_agb["agb"],regional_emulated_agb["agb"]),2)}')
-    print(f'MSE value of CESM compared to NFIS: {round(mean_squared_error(regional_nfis_agb["agb"],regional_cesm_agb["agb"]),2)}')
-    print(f'MSE value of CESM compared to Walker: {round(mean_squared_error(regional_walker_agb["agb"],regional_cesm_agb["agb"]),2)}')
-    print(f'MSE value of CESM compared to Sothe: {round(mean_squared_error(regional_sothe_soil["cSoilAbove1m"],regional_cesm_soil["cSoilAbove1m"]),2)}')
-    print(f'MSE value of emulated compared to Sothe: {round(mean_squared_error(regional_sothe_soil["cSoilAbove1m"],regional_emulated_soil["cSoilAbove1m"]),2)}')
-    print(f'MSE value of emulated compared to CESM2: {round(mean_squared_error(regional_cesm_agb["agb"],regional_emulated_agb["agb"]),2)}')
-    print(f'MSE value of emulated compared to CESM2: {round(mean_squared_error(regional_cesm_soil["cSoilAbove1m"],regional_emulated_soil["cSoilAbove1m"]),2)}')
+    print(f'MSE value of emulation compared to NFIS: {torch.round(lat_adjusted_mse(torch.tensor(regional_nfis_agb["agb"]),torch.tensor(regional_emulated_agb["agb"]),torch.tensor(regional_emulated_agb["lat"])),decimals=2)}')
+    print(f'MSE value of emulation compared to Walker: {torch.round(lat_adjusted_mse(torch.tensor(regional_walker_agb["agb"]),torch.tensor(regional_emulated_agb["agb"]),torch.tensor(regional_emulated_agb["lat"])),decimals=2)}')
+    print(f'MSE value of CESM compared to NFIS: {torch.round(lat_adjusted_mse(torch.tensor(regional_nfis_agb["agb"]),torch.tensor(regional_cesm_agb["agb"]),torch.tensor(regional_emulated_agb["lat"])),decimals=2)}')
+    print(f'MSE value of CESM compared to Walker: {torch.round(lat_adjusted_mse(torch.tensor(regional_walker_agb["agb"]),torch.tensor(regional_cesm_agb["agb"]),torch.tensor(regional_emulated_agb["lat"])),decimals=2)}')
+    print(f'MSE value of CESM compared to Sothe: {torch.round(lat_adjusted_mse(torch.tensor(regional_sothe_soil["cSoilAbove1m"]),torch.tensor(regional_cesm_soil["cSoilAbove1m"]),torch.tensor(regional_emulated_agb["lat"])),decimals=2)}')
+    print(f'MSE value of emulated compared to Sothe: {torch.round(lat_adjusted_mse(torch.tensor(regional_sothe_soil["cSoilAbove1m"]),torch.tensor(regional_emulated_soil["cSoilAbove1m"]),torch.tensor(regional_emulated_agb["lat"])),decimals=2)}')
+    print(f'MSE value of emulated compared to CESM2: {torch.round(lat_adjusted_mse(torch.tensor(regional_cesm_agb["agb"]),torch.tensor(regional_emulated_agb["agb"]),torch.tensor(regional_emulated_agb["lat"])),decimals=2)}')
+    print(f'MSE value of emulated compared to CESM2: {torch.round(lat_adjusted_mse(torch.tensor(regional_cesm_soil["cSoilAbove1m"]),torch.tensor(regional_emulated_soil["cSoilAbove1m"]),torch.tensor(regional_emulated_agb["lat"])),decimals=2)}')
 
 if __name__ == "__main__":
     main()
